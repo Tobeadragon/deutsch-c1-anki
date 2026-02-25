@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deutsch C1 Meister Anki</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="main-header">
+            <div class="header-top">
+                <h1>C1 Meister Anki</h1>
+                <button id="btn-start-quiz" class="quiz-badge">🚀 本日のクイズ (20問)</button>
+            </div>
+            <div class="dashboard-card">
+                <div class="chart-box"><canvas id="progressChart"></canvas></div>
+                <div class="stats-grid">
+                    <div class="stat-item"><span class="dot blue"></span> 習得: <span id="stat-mastered">0</span></div>
+                    <div class="stat-item"><span class="dot green"></span> 学習: <span id="stat-perfect">0</span></div>
+                    <div class="stat-item"><span class="dot gray"></span> 復習: <span id="stat-review">0</span></div>
+                </div>
+            </div>
+        </header>
+
+        <div class="scene">
+            <div id="card" class="anki-card">
+                <div class="card__face card__face--front">
+                    <div class="card-label" id="card-mode-label">Normal Mode</div>
+                    <h2 id="word-display">Laden...</h2>
+                    <div class="tap-hint">Tap to flip</div>
+                    <button id="speak-btn" class="speak-icon">🔊</button>
+                </div>
+                <div class="card__face card__face--back">
+                    <div class="back-content">
+                        <div class="info-group">
+                            <label>Beispielsatz</label>
+                            <p id="example-display"></p>
+                            <p id="example-translation-display" class="sub-text"></p>
+                        </div>
+                        <hr class="card-divider">
+                        <div class="info-group">
+                            <label>Bedeutung</label>
+                            <p id="translation-display" class="translation-text"></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="btn-show" class="btn btn--show">Anzeigen</button>
+            <div id="action-buttons" class="hidden btn-row">
+                <button id="btn-review" class="btn btn--danger">Noch mal</button>
+                <button id="btn-perfect" class="btn btn--success">Gelernt</button>
+                <button id="btn-mastered" class="btn btn--mastered">Meister!</button>
+            </div>
+        </div>
+
+        <section class="admin-area">
+            <details open>
+                <summary>単語追加・管理リスト</summary>
+
+                <div class="admin-card add-section">
+                    <h3>新規追加 / 編集</h3>
+                    <input type="hidden" id="edit-id">
+                    <div class="input-stack">
+                        <div class="input-group">
+                            <label>Wort / 単語</label>
+                            <input type="text" id="input-word" placeholder="例: der Beispielsatz">
+                        </div>
+                        <div class="input-group">
+                            <label>Kategorie / カテゴリ</label>
+                            <select id="input-category">
+                                <option value="Verb">Verb</option>
+                                <option value="Nomen">Nomen</option>
+                                <option value="Adjektiv">Adjektiv</option>
+                                <option value="Modalverb">Modalverb</option>
+                                <option value="Präposition">Präposition</option>
+                                <option value="Sonstiges">Sonstiges</option>
+                            </select>
+                        </div>
+                        <div class="input-group">
+                            <label>Bedeutung / 意味</label>
+                            <input type="text" id="input-translation" placeholder="意味を入力">
+                        </div>
+                        <div class="input-group">
+                            <label>Beispielsatz / 例文</label>
+                            <textarea id="input-example" placeholder="ドイツ語の例文"></textarea>
+                        </div>
+                        <div class="input-group">
+                            <label>Übersetzung / 例文の訳</label>
+                            <input type="text" id="input-example-translation" placeholder="例文の日本語訳">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button id="btn-add-manual" class="btn btn--add-primary">保存してリストに追加</button>
+                        <button id="btn-cancel-edit" class="btn btn--cancel hidden">キャンセル</button>
+                    </div>
+                </div>
+
+                <div class="data-sync-row">
+                    <button id="btn-export" class="sync-btn">💾 JSON書出</button>
+                    <label class="sync-btn">📂 JSON読込<input type="file" id="input-import" hidden></label>
+                </div>
+
+                <div class="table-container admin-card">
+                    <table class="vocab-table">
+                        <thead>
+                            <tr>
+                                <th>単語</th>
+                                <th>ステータス</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vocab-list-body"></tbody>
+                    </table>
+                </div>
+
+                <button id="btn-clear" class="btn--clear-all">⚠️ 全データを完全に削除</button>
+            </details>
+        </section>
+    </div>
+    <script src="script.js"></script>
+</body>
+
+</html>
