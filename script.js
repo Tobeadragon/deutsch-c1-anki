@@ -23,24 +23,21 @@ const App = {
     },
 
     bindEvents() {
-        // カード全体のクリック（表なら裏へ、裏なら表へ）
+        // カード全体のクリック（双方向フリップ）
         document.getElementById('card').onclick = (e) => {
-            // 読み上げボタン系がクリックされた場合は何もしない
             if (e.target.closest('.speak-btn-icon') || e.target.closest('.speak-btn-icon-sm')) {
                 return;
             }
-
             const card = document.getElementById('card');
             const isFlipped = card.classList.contains('is-flipped');
-
             if (!isFlipped) {
-                this.showAnswer(); // 裏返す
+                this.showAnswer();
             } else {
-                card.classList.remove('is-flipped'); // 表に戻す
+                card.classList.remove('is-flipped');
             }
         };
 
-        // 読み上げボタンの個別設定
+        // 読み上げ
         document.getElementById('speak-word-front').onclick = (e) => {
             e.stopPropagation();
             this.speak(document.getElementById('word-display').innerText);
@@ -54,7 +51,7 @@ const App = {
             this.speak(document.getElementById('example-display').innerText);
         };
 
-        // 判定ボタン（これらを押した時だけ次のカードへ）
+        // 判定ボタン
         document.getElementById('btn-review').onclick = (e) => { e.stopPropagation(); this.handleMark('review'); };
         document.getElementById('btn-perfect').onclick = (e) => { e.stopPropagation(); this.handleMark('perfect'); };
         document.getElementById('btn-mastered').onclick = (e) => { e.stopPropagation(); this.handleMark('mastered'); };
@@ -65,7 +62,7 @@ const App = {
 
     async handleMark(status) {
         const card = document.getElementById('card');
-        card.classList.remove('is-flipped'); // 次のカードのために表に戻す
+        card.classList.remove('is-flipped');
 
         let currentItem = isQuizMode ? quizQueue.shift() : this.getNormalList()[0];
         if (currentItem) {
@@ -80,7 +77,6 @@ const App = {
             isQuizMode = false;
         }
 
-        // カードが表に戻るアニメーションを待ってから次を表示
         setTimeout(() => { this.render(); }, 300);
     },
 
@@ -98,7 +94,6 @@ const App = {
     render() {
         this.updateStats();
         const card = document.getElementById('card');
-        // render時は必ず表面から
         card.classList.remove('is-flipped');
         document.getElementById('btn-show').classList.remove('hidden');
         document.getElementById('action-buttons').classList.add('hidden');
@@ -106,15 +101,20 @@ const App = {
         const cur = isQuizMode ? quizQueue[0] : this.getNormalList()[0];
         if (!cur) {
             document.getElementById('word-display').innerText = "学習完了！";
-            if (document.getElementById('word-display-back'))
-                document.getElementById('word-display-back').innerText = "";
+            if (document.getElementById('word-display-back')) document.getElementById('word-display-back').innerText = "";
+            if (document.getElementById('category-display-back')) document.getElementById('category-display-back').innerText = "";
             document.getElementById('btn-show').classList.add('hidden');
             return;
         }
 
+        // 表面の表示
         document.getElementById('word-display').innerText = cur.word;
+
+        // 裏面の表示（単語と品詞）
         if (document.getElementById('word-display-back'))
             document.getElementById('word-display-back').innerText = cur.word;
+        if (document.getElementById('category-display-back'))
+            document.getElementById('category-display-back').innerText = cur.category || "";
 
         document.getElementById('example-display').innerText = cur.example || "---";
         document.getElementById('example-translation-display').innerText = cur.example_translation || "";
