@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="de">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Manager - C1 Meister Anki</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <header class="main-header">
+            <div class="header-top">
+                <h1>Data Manager</h1>
+                <a href="index.html" class="quiz-badge">← 学習画面に戻る</a>
+            </div>
+        </header>
+
+        <section class="admin-card">
+            <h3>単語の追加・編集</h3>
+            <input type="hidden" id="edit-id">
+            <div class="input-stack">
+                <div class="input-group"><label>Wort</label><input type="text" id="input-word"></div>
+                <div class="input-group">
+                    <label>Kategorie</label>
+                    <select id="input-category" class="custom-select">
+                        <option value="Verb">Verb</option>
+                        <option value="Nomen">Nomen</option>
+                        <option value="Adjektiv">Adjektiv</option>
+                        <option value="Sonstiges">Sonstiges</option>
+                    </select>
+                </div>
+                <div class="input-group"><label>Bedeutung</label><input type="text" id="input-translation"></div>
+                <div class="input-group"><label>Beispielsatz</label><textarea id="input-example"></textarea></div>
+                <div class="input-group"><label>訳</label><input type="text" id="input-example-translation"></div>
+            </div>
+            <div class="form-actions" style="display: flex; gap: 10px;">
+                <button id="btn-save" class="btn btn--add-primary" style="flex: 2;">保存する</button>
+                <button id="btn-cancel" class="btn btn--cancel hidden" style="flex: 1;">× 取消</button>
+            </div>
+        </section>
+
+        <div class="admin-card">
+            <div class="input-stack">
+                <div class="input-group">
+                    <input type="text" id="search-input" placeholder="単語または意味で検索...">
+                </div>
+                <div class="input-row" style="display: flex; gap: 10px; align-items: center;">
+                    <select id="filter-category" class="custom-select" style="flex: 2;">
+                        <option value="all">すべての品詞</option>
+                        <option value="Verb">Verb</option>
+                        <option value="Nomen">Nomen</option>
+                        <option value="Adjektiv">Adjektiv</option>
+                    </select>
+                    <button id="btn-export" class="btn-sync" style="flex: 1.2;">
+                        <span>💾</span> Export
+                    </button>
+                    <label class="btn-sync" style="flex: 1.2; text-align: center; cursor: pointer;">
+                        <span>📂</span> Import
+                        <input type="file" id="input-import" hidden>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-card table-container">
+            <table class="vocab-table">
+                <thead>
+                    <tr>
+                        <th>単語 / 品詞</th>
+                        <th>Status</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="vocab-list-body"></tbody>
+            </table>
+
+            <div id="pagination"
+                style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 20px;">
+                <button id="prev-page" class="btn-edit-sm">◀ 前へ</button>
+                <span id="page-info" style="font-size: 0.9rem; font-weight: bold;">1 / 1</span>
+                <button id="next-page" class="btn-edit-sm">次へ ▶</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="database.js"></script>
+    <script src="admin.js"></script>
+</body>
+
+</html>
