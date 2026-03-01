@@ -6,7 +6,7 @@ const itemsPerPage = 20;
 const Admin = {
     async init() {
         vocabulary = await DB.fetchAll();
-        this.applyFilter(); // 初回表示
+        this.applyFilter();
         this.bindEvents();
     },
 
@@ -16,17 +16,15 @@ const Admin = {
         document.getElementById('btn-export').onclick = () => this.exportToJson();
         document.getElementById('input-import').onchange = (e) => this.importFromJson(e);
 
-        // 検索・フィルターイベント
         document.getElementById('search-input').oninput = () => { currentPage = 1; this.applyFilter(); };
         document.getElementById('filter-category').onchange = () => { currentPage = 1; this.applyFilter(); };
 
-        // ページネーションイベント
         document.getElementById('prev-page').onclick = () => { if (currentPage > 1) { currentPage--; this.renderList(); } };
         document.getElementById('next-page').onclick = () => { if (currentPage < this.totalPages()) { currentPage++; this.renderList(); } };
     },
 
     applyFilter() {
-        const searchText = document.getElementById('search-input').value.toLowerCase();
+        const searchText = (document.getElementById('search-input').value || "").toLowerCase();
         const category = document.getElementById('filter-category').value;
 
         filteredList = vocabulary.filter(item => {
@@ -36,9 +34,7 @@ const Admin = {
             return matchesSearch && matchesCategory;
         });
 
-        // 最新の追加分を上に
         filteredList.sort((a, b) => new Date(b.lastReviewed || 0) - new Date(a.lastReviewed || 0));
-
         this.renderList();
     },
 
@@ -52,7 +48,6 @@ const Admin = {
         const end = start + itemsPerPage;
         const pageItems = filteredList.slice(start, end);
 
-        // ページ情報更新
         document.getElementById('page-info').innerText = `${currentPage} / ${this.totalPages()}`;
         document.getElementById('prev-page').disabled = (currentPage === 1);
         document.getElementById('next-page').disabled = (currentPage === this.totalPages());
@@ -79,21 +74,25 @@ const Admin = {
         const word = document.getElementById('input-word').value.trim();
         if (!word) return;
 
+        // IDの型を一致させて検索 (数値と文字列の差異を許容)
+        const targetIndex = vocabulary.findIndex(v => String(v.id) === String(id));
+
         const data = {
-            id: id || "id_" + Date.now(),
+            id: id || Date.now().toString(), // 新規なら文字列IDを生成
             word,
             category: document.getElementById('input-category').value,
             translation: document.getElementById('input-translation').value,
             example: document.getElementById('input-example').value,
             example_translation: document.getElementById('input-example-translation').value,
-            status: id ? vocabulary.find(v => v.id === id).status : 'new',
+            status: (targetIndex > -1) ? vocabulary[targetIndex].status : 'new',
             lastReviewed: new Date().toISOString()
         };
 
-        if (id) {
-            const idx = vocabulary.findIndex(v => v.id === id);
-            vocabulary[idx] = data;
+        if (targetIndex > -1) {
+            // 既存データの更新
+            vocabulary[targetIndex] = data;
         } else {
+            // 新規データの追加
             vocabulary.push(data);
         }
 
@@ -103,13 +102,17 @@ const Admin = {
     },
 
     editItem(id) {
-        const item = vocabulary.find(v => v.id === id);
+        // IDの型を考慮して検索
+        const item = vocabulary.find(v => String(v.id) === String(id));
+        if (!item) return;
+
         document.getElementById('edit-id').value = item.id;
         document.getElementById('input-word').value = item.word;
         document.getElementById('input-category').value = item.category;
         document.getElementById('input-translation').value = item.translation;
         document.getElementById('input-example').value = item.example;
         document.getElementById('input-example-translation').value = item.example_translation;
+
         document.getElementById('btn-save').innerText = "修正を保存";
         document.getElementById('btn-cancel').classList.remove('hidden');
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -117,7 +120,7 @@ const Admin = {
 
     async deleteItem(id) {
         if (!confirm("削除しますか？")) return;
-        vocabulary = vocabulary.filter(v => v.id !== id);
+        vocabulary = vocabulary.filter(v => String(v.id) !== String(id));
         await DB.save(vocabulary);
         this.applyFilter();
     },
@@ -137,21 +140,29 @@ const Admin = {
         a.click();
     },
 
-    importFromJson(e) {
+    async importFromJson(e) {
         const file = e.target.files[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = async (ev) => {
             try {
-                let content = ev.target.result.trim().replace(/^\[\[/, '[').replace(/\]\]$/, ']');
-                const imported = JSON.parse(content);
+                let imported = JSON.parse(ev.target.result);
+
+                // [[ ... ]] という二重配列形式の場合、一段階平坦化(flatten)する
+                if (Array.isArray(imported) && imported.length > 0 && Array.isArray(imported[0])) {
+                    imported = imported[0];
+                }
+
                 if (Array.isArray(imported)) {
                     vocabulary = imported;
                     await DB.save(vocabulary);
                     this.applyFilter();
-                    alert("インポート完了");
+                    alert("インポートが完了しました");
                 }
-            } catch (err) { alert("JSON形式エラー"); }
+            } catch (err) {
+                alert("JSON形式が正しくありません");
+                console.error(err);
+            }
         };
         reader.readAsText(file);
     }
