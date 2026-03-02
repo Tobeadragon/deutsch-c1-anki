@@ -18,11 +18,11 @@ const App = {
             if (e.target.closest('.speak-btn-icon') || e.target.closest('.speak-btn-icon-sm')) return;
             const card = document.getElementById('card');
             if (!card.classList.contains('is-flipped')) this.showAnswer();
-            else card.classList.remove('is-flipped');
+            else this.hideAnswer(); // 表に戻す
         };
 
         document.getElementById('speak-word-front').onclick = (e) => { e.stopPropagation(); this.speak(document.getElementById('word-display').innerText); };
-        document.getElementById('speak-word-back').onclick = (e) => { e.stopPropagation(); this.speak(document.getElementById('word-display').innerText); };
+        document.getElementById('speak-word-back').onclick = (e) => { e.stopPropagation(); this.speak(document.getElementById('word-display-back').innerText); };
         document.getElementById('speak-example-back').onclick = (e) => { e.stopPropagation(); this.speak(document.getElementById('example-display').innerText); };
 
         document.getElementById('btn-review').onclick = (e) => { e.stopPropagation(); this.handleMark('review'); };
@@ -33,8 +33,7 @@ const App = {
     },
 
     async handleMark(status) {
-        const card = document.getElementById('card');
-        card.classList.remove('is-flipped');
+        this.hideAnswer(); // 状態に関わらず表に戻し、要素をリセット
 
         let currentItem = isQuizMode ? quizQueue.shift() : this.getNormalList()[0];
         if (currentItem) {
@@ -46,7 +45,7 @@ const App = {
         }
 
         if (isQuizMode && quizQueue.length === 0) {
-            this.showResult();
+            setTimeout(() => this.showResult(), 400);
             isQuizMode = false;
         }
         setTimeout(() => this.render(), 300);
@@ -59,16 +58,52 @@ const App = {
     },
 
     showAnswer() {
-        document.getElementById('card').classList.add('is-flipped');
+        const card = document.getElementById('card');
+        const faceFront = document.getElementById('face-front');
+        const faceBack = document.getElementById('face-back');
+
+        card.classList.add('is-flipped');
+
+        // iPhone対策: 0.2秒後に表面を物理的に隠し、裏面を表示
+        setTimeout(() => {
+            if (card.classList.contains('is-flipped')) {
+                faceFront.style.visibility = 'hidden';
+                faceBack.style.visibility = 'visible';
+            }
+        }, 200);
+
         document.getElementById('btn-show').classList.add('hidden');
         document.getElementById('action-buttons').classList.remove('hidden');
         const ex = document.getElementById('example-display').innerText;
         if (ex && ex !== "---") this.speak(ex);
     },
 
+    hideAnswer() {
+        const card = document.getElementById('card');
+        const faceFront = document.getElementById('face-front');
+        const faceBack = document.getElementById('face-back');
+
+        card.classList.remove('is-flipped');
+
+        // 表に戻る際は即座に表面を表示、裏面を隠す
+        faceFront.style.visibility = 'visible';
+        setTimeout(() => {
+            if (!card.classList.contains('is-flipped')) {
+                faceBack.style.visibility = 'hidden';
+            }
+        }, 200);
+
+        document.getElementById('btn-show').classList.remove('hidden');
+        document.getElementById('action-buttons').classList.add('hidden');
+    },
+
     render() {
         this.updateStats();
+        // 初期化：表面を見せて裏面を隠す
         document.getElementById('card').classList.remove('is-flipped');
+        document.getElementById('face-front').style.visibility = 'visible';
+        document.getElementById('face-back').style.visibility = 'hidden';
+
         document.getElementById('btn-show').classList.remove('hidden');
         document.getElementById('action-buttons').classList.add('hidden');
 
