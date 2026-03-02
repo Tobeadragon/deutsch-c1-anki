@@ -4,7 +4,6 @@ let quizQueue = [];
 let isQuizMode = false;
 let quizCorrectCount = 0;
 let quizTotalCount = 0;
-let frontContentCache = ""; // 表面のHTMLを一時保存する変数
 
 const App = {
     async init() {
@@ -16,20 +15,14 @@ const App = {
 
     bindEvents() {
         document.getElementById('card').onclick = (e) => {
+            // ボタンクリック時は反転させない
             if (e.target.closest('.speak-btn-icon') || e.target.closest('.speak-btn-icon-sm')) return;
             const card = document.getElementById('card');
             if (!card.classList.contains('is-flipped')) this.showAnswer();
             else this.hideAnswer();
         };
 
-        // イベント委譲（表面が空になっても動作するようにdocumentで拾う）
-        document.addEventListener('click', (e) => {
-            if (e.target.id === 'speak-word-front') {
-                e.stopPropagation();
-                this.speak(document.getElementById('word-display').innerText);
-            }
-        });
-
+        document.getElementById('speak-word-front').onclick = (e) => { e.stopPropagation(); this.speak(document.getElementById('word-display').innerText); };
         document.getElementById('speak-word-back').onclick = (e) => { e.stopPropagation(); this.speak(document.getElementById('word-display-back').innerText); };
         document.getElementById('speak-example-back').onclick = (e) => { e.stopPropagation(); this.speak(document.getElementById('example-display').innerText); };
 
@@ -41,6 +34,7 @@ const App = {
     },
 
     async handleMark(status) {
+        this.hideAnswer();
         let currentItem = isQuizMode ? quizQueue.shift() : this.getNormalList()[0];
         if (currentItem) {
             if (isQuizMode && (status === 'perfect' || status === 'mastered')) quizCorrectCount++;
@@ -54,27 +48,29 @@ const App = {
             setTimeout(() => this.showResult(), 400);
             isQuizMode = false;
         }
-
-        this.hideAnswer(); // ここで表面を復活させる
         setTimeout(() => this.render(), 300);
     },
 
     showResult() {
         const percent = Math.round((quizCorrectCount / quizTotalCount) * 100);
-        alert(`結果: ${quizCorrectCount}/${quizTotalCount} (${percent}%)\n${percent >= 70 ? "Gut gemacht!" : "Lass uns noch mal üben!"}`);
+        alert(`Quiz Beendet!\nResultat: ${quizCorrectCount}/${quizTotalCount} (${percent}%)\n${percent >= 70 ? "Super!" : "Noch mal!"}`);
     },
 
     showAnswer() {
         const card = document.getElementById('card');
         const faceFront = document.getElementById('face-front');
-
-        // 1. 表面の内容を退避させてから消去する
-        if (!frontContentCache) frontContentCache = faceFront.innerHTML;
+        const faceBack = document.getElementById('face-back');
 
         card.classList.add('is-flipped');
 
-        // アニメーション開始直後に中身を空にする（これでiPhoneでも突き抜ける要素がなくなる）
-        faceFront.innerHTML = "";
+        // iPhone Safari対策：アニメーションの中間（0.3秒）で重なり順と透明度を操作
+        setTimeout(() => {
+            if (card.classList.contains('is-flipped')) {
+                faceFront.style.opacity = "0";      // 表面を透明に
+                faceFront.style.zIndex = "1";       // 表面を下に
+                faceBack.style.zIndex = "2";        // 裏面を上に
+            }
+        }, 300);
 
         document.getElementById('btn-show').classList.add('hidden');
         document.getElementById('action-buttons').classList.remove('hidden');
@@ -85,14 +81,14 @@ const App = {
     hideAnswer() {
         const card = document.getElementById('card');
         const faceFront = document.getElementById('face-front');
+        const faceBack = document.getElementById('face-back');
 
         card.classList.remove('is-flipped');
 
-        // 2. 表面がこちらを向くタイミングで中身を復元する
-        if (frontContentCache) {
-            faceFront.innerHTML = frontContentCache;
-            frontContentCache = ""; // キャッシュをクリア
-        }
+        // 表に戻る時は即座に表面を表示、裏面を透明に
+        faceFront.style.opacity = "1";
+        faceFront.style.zIndex = "2";
+        faceBack.style.zIndex = "1";
 
         document.getElementById('btn-show').classList.remove('hidden');
         document.getElementById('action-buttons').classList.add('hidden');
@@ -100,21 +96,19 @@ const App = {
 
     render() {
         this.updateStats();
-        const cur = isQuizMode ? quizQueue[0] : this.getNormalList()[0];
-
-        // 常に「表面が見える状態」からスタートさせる
+        // 状態リセット
         const faceFront = document.getElementById('face-front');
-        if (frontContentCache) {
-            faceFront.innerHTML = frontContentCache;
-            frontContentCache = "";
-        }
+        const faceBack = document.getElementById('face-back');
+        document.getElementById('card').classList.remove('is-flipped');
+        faceFront.style.opacity = "1";
+        faceFront.style.zIndex = "2";
+        faceBack.style.zIndex = "1";
 
+        const cur = isQuizMode ? quizQueue[0] : this.getNormalList()[0];
         if (!cur) {
             document.getElementById('word-display').innerText = "学習完了！";
             return;
         }
-
-        // データの流し込み
         document.getElementById('word-display').innerText = cur.word;
         document.getElementById('word-display-back').innerText = cur.word;
         document.getElementById('category-display-back').innerText = cur.category || "";

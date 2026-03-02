@@ -9,6 +9,7 @@
     --text-sub: #8e8e93;
 }
 
+/* 全体レイアウト */
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg);
@@ -25,7 +26,7 @@ body {
     box-sizing: border-box;
 }
 
-/* Header & Dashboard */
+/* ヘッダー & 進捗ダッシュボード */
 .main-header {
     margin-bottom: 20px;
 }
@@ -99,12 +100,12 @@ body {
     background: #d1d1d6;
 }
 
-/* Flip Card Scene */
+/* 単語カード 3D 設定 (iPhone Safari 対策) */
 .scene {
     width: 100%;
     height: 360px;
-    perspective: 1000px;
-    -webkit-perspective: 1000px;
+    perspective: 1200px;
+    -webkit-perspective: 1200px;
     margin-bottom: 20px;
 }
 
@@ -115,7 +116,6 @@ body {
     transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     transform-style: preserve-3d;
     -webkit-transform-style: preserve-3d;
-    cursor: pointer;
 }
 
 .anki-card.is-flipped {
@@ -123,6 +123,7 @@ body {
     -webkit-transform: rotateY(180deg);
 }
 
+/* カードの各面 */
 .card__face {
     position: absolute;
     width: 100%;
@@ -134,8 +135,8 @@ body {
     background: white;
     padding: 24px;
     box-sizing: border-box;
-    top: 0;
-    left: 0;
+    transition: opacity 0.3s ease;
+    /* JSでの制御を滑らかにする */
 }
 
 .card__face--front {
@@ -154,10 +155,9 @@ body {
     flex-direction: column;
     border-top: 6px solid var(--success);
     z-index: 1;
-    visibility: hidden;
 }
 
-/* 音声ボタン */
+/* 音声ボタンデザイン (モダン・スタイリッシュ) */
 .card-header-actions {
     position: absolute;
     top: 15px;
@@ -166,7 +166,7 @@ body {
 }
 
 .speak-btn-icon {
-    background: rgba(242, 242, 247, 0.8);
+    background: rgba(242, 242, 247, 0.9);
     border: none;
     font-size: 1.2rem;
     width: 44px;
@@ -177,6 +177,12 @@ body {
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.speak-btn-icon:active {
+    transform: scale(0.9);
+    background: #e5e5ea;
 }
 
 .speak-btn-icon-sm {
@@ -188,11 +194,19 @@ body {
     font-size: 0.75rem;
     font-weight: bold;
     color: var(--primary);
+    transition: 0.2s;
 }
 
+.speak-btn-icon-sm:hover {
+    background: #e5e5ea;
+}
+
+/* 単語表示テキスト */
 #word-display {
     font-size: 2.2rem;
     font-weight: 800;
+    margin: 0;
+    color: var(--text-main);
     text-align: center;
 }
 
@@ -204,10 +218,12 @@ body {
     left: 0;
     color: var(--text-sub);
     font-size: 0.75rem;
+    letter-spacing: 1px;
     pointer-events: none;
+    text-transform: uppercase;
 }
 
-/* Control Buttons */
+/* 下部操作ボタン */
 .btn {
     border: none;
     padding: 16px;
@@ -222,6 +238,7 @@ body {
 .btn--show {
     background: var(--text-main);
     color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .btn-row {
@@ -244,22 +261,70 @@ body {
     color: white;
 }
 
-/* Admin Link */
+/* 管理画面へのリンク (チップ風ボタン) */
 .admin-link-container {
     text-align: center;
     margin-top: 40px;
+    padding-bottom: 20px;
 }
 
 .admin-link {
     color: var(--text-sub);
     text-decoration: none;
     font-size: 0.8rem;
-    padding: 8px 20px;
+    padding: 10px 20px;
     border-radius: 20px;
     background: #fff;
     border: 1px solid #e5e5ea;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
 }
 
+.admin-link:hover {
+    background: #f2f2f7;
+    color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* 共通ユーティリティ */
 .hidden {
     display: none !important;
+}
+
+/* 管理画面 (Admin) 専用スタイル */
+.status-select-sm {
+    padding: 6px;
+    font-size: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid #e5e5ea;
+    background: #fff;
+}
+
+.btn-edit-sm {
+    background: #f2f2f7;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-right: 4px;
+    font-size: 0.8rem;
+}
+
+.table-container {
+    overflow-x: auto;
+}
+
+.vocab-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.vocab-table th,
+.vocab-table td {
+    text-align: left;
+    padding: 12px 8px;
+    border-bottom: 1px solid #eee;
 }
