@@ -328,3 +328,147 @@ body {
     padding: 12px 8px;
     border-bottom: 1px solid #eee;
 }
+
+/* --- Data Manager 専用スタイル --- */
+
+/* カードの基本設定 */
+.admin-card {
+    background: var(--card-bg);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.admin-card h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    color: var(--text-main);
+    border-left: 4px solid var(--primary);
+    padding-left: 10px;
+}
+
+/* 入力グループのレイアウト */
+.input-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.input-group label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-sub);
+    margin-left: 4px;
+}
+
+/* 入力パーツのモダン化 */
+input[type="text"],
+textarea,
+.custom-select {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid #e5e5ea;
+    background-color: #f9f9fb;
+    font-size: 1rem;
+    font-family: inherit;
+    box-sizing: border-box;
+    transition: all 0.2s ease;
+    -webkit-appearance: none;
+    /* iOS特有のスタイルをリセット */
+}
+
+input[type="text"]:focus,
+textarea:focus,
+.custom-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(88, 86, 214, 0.1);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* ボタンのカスタマイズ */
+.form-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn--save {
+    background: var(--primary);
+    color: white;
+}
+
+.btn--cancel {
+    background: #e5e5ea;
+    color: var(--text-main);
+}
+
+/* フィルターと同期セクション */
+.filter-row {
+    display: flex;
+    gap: 10px;
+}
+
+.sync-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.btn-sync {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    border: 1px solid #e5e5ea;
+    padding: 12px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-sync:active {
+    background: #f2f2f7;
+    transform: scale(0.98);
+}
+
+/* テーブルのモバイル最適化 */
+.vocab-table {
+    font-size: 0.9rem;
+}
+
+.vocab-table th {
+    color: var(--text-sub);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+}
+
+.vocab-table td {
+    vertical-align: middle;
+}
+
+/* 状態バッジの簡易スタイル（必要に応じて） */
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
