@@ -96,21 +96,30 @@ const App = {
 
     render() {
         this.updateStats();
-        // 状態リセット
+
+        const card = document.getElementById('card');
         const faceFront = document.getElementById('face-front');
         const faceBack = document.getElementById('face-back');
-        document.getElementById('card').classList.remove('is-flipped');
+
+        card.classList.remove('is-flipped');
         faceFront.style.opacity = "1";
         faceFront.style.zIndex = "2";
         faceBack.style.zIndex = "1";
 
-        const cur = isQuizMode ? quizQueue[0] : this.getNormalList()[0];
-        if (!cur) {
+        // 現在のアイテムを取得
+        const list = isQuizMode ? quizQueue : this.getNormalList();
+        const cur = list[0]; // リストの先頭を取得
+
+        if (!cur || typeof cur !== 'object') {
             document.getElementById('word-display').innerText = "学習完了！";
             return;
         }
+
+        // 重要：ここで cur.word (例: "absehbar") を直接代入
+        // もし ID (62) などが混ざるなら、ここで明示的にプロパティを指定
         document.getElementById('word-display').innerText = cur.word;
         document.getElementById('word-display-back').innerText = cur.word;
+
         document.getElementById('category-display-back').innerText = cur.category || "";
         document.getElementById('translation-display').innerText = cur.translation || "";
         document.getElementById('example-display').innerText = cur.example || "---";
@@ -118,9 +127,16 @@ const App = {
     },
 
     getNormalList() {
-        const list = vocabulary.filter(v => v.status !== 'mastered');
-        // フィッシャー・イェーツのシャッフル（簡易版）
-        return list.sort(() => Math.random() - 0.5);
+        // master済でないものを抽出
+        const filtered = vocabulary.filter(v => v.status !== 'mastered');
+
+        // 配列自体をランダムに並び替える（フィッシャー・イェーツのシャッフル）
+        for (let i = filtered.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+        }
+
+        return filtered;
     },
 
     updateStats() {
