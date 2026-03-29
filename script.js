@@ -118,8 +118,9 @@ const App = {
     },
 
     getNormalList() {
-        return vocabulary.filter(v => v.status !== 'mastered')
-            .sort((a, b) => new Date(a.lastReviewed || 0) - new Date(b.lastReviewed || 0));
+        const list = vocabulary.filter(v => v.status !== 'mastered');
+        // フィッシャー・イェーツのシャッフル（簡易版）
+        return list.sort(() => Math.random() - 0.5);
     },
 
     updateStats() {
