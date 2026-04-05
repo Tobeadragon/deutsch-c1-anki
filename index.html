@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anki Meister</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./styles/style.css">
+    <link rel="stylesheet" href="./styles/quiz.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
@@ -24,44 +25,95 @@
                     <div class="stat-item"><span class="dot gray"></span> 復習: <span id="stat-review">0</span></div>
                 </div>
             </div>
+            <!--status bar-->
+            <div class="mastery-bar-wrap">
+                <div class="mastery-bar-track">
+                    <div class="mastery-bar-fill" id="mastery-bar" style="width:0%"></div>
+                </div>
+                <span class="mastery-bar-pct" id="mastery-pct">0%</span>
+            </div>
+
         </header>
 
-        <div class="scene">
-            <div id="card" class="anki-card">
-                <div class="card__face card__face--front" id="face-front">
-                    <div class="card-header-actions">
-                        <button id="speak-word-front" class="speak-btn-icon">🔊</button>
+        <!-- 4択クイズ起動ボタン -->
+        <div id="mc-launch-wrap" class="mc-launch-wrap">
+            <button id="btn-start-mc" class="btn-mc-launch">✏️ 4択クイズ (20問)</button>
+        </div>
+
+        <!--Flashcard Section-->
+        <div id="card-section">
+            <div class="scene">
+                <div id="card" class="anki-card">
+                    <div class="card__face card__face--front" id="face-front">
+                        <div class="card-header-actions">
+                            <button id="speak-word-front" class="speak-btn-icon">🔊</button>
+                        </div>
+                        <h2 id="word-display">Laden...</h2>
+                        <div class="tap-hint">Tap to flip</div>
                     </div>
-                    <h2 id="word-display">Laden...</h2>
-                    <div class="tap-hint">Tap to flip</div>
-                </div>
-                <div class="card__face card__face--back" id="face-back">
-                    <div class="back-content">
-                        <div class="item-row" style="align-items: flex-start;">
-                            <div>
-                                <h3 id="word-display-back" style="margin:0; font-size:1.4rem; color:var(--primary);">
-                                </h3>
-                                <small id="category-display-back"
-                                    style="color:var(--text-sub); font-weight:bold;"></small>
+                    <div class="card__face card__face--back" id="face-back">
+                        <div class="back-content">
+                            <div class="item-row" style="align-items: flex-start;">
+                                <div>
+                                    <h3 id="word-display-back"
+                                        style="margin:0; font-size:1.4rem; color:var(--primary);">
+                                    </h3>
+                                    <small id="category-display-back"
+                                        style="color:var(--text-sub); font-weight:bold;"></small>
+                                </div>
+                                <button id="speak-word-back" class="speak-btn-icon-sm">🔊 単語</button>
                             </div>
-                            <button id="speak-word-back" class="speak-btn-icon-sm">🔊 単語</button>
+                            <hr style="margin: 10px 0; border:0; border-top:1px solid #eee;">
+                            <div class="item-row"><strong>Bedeutung:</strong></div>
+                            <p id="translation-display"
+                                style="font-size: 1.1rem; margin: 5px 0 15px 0; font-weight:bold;">
+                            </p>
+                            <div class="item-row">
+                                <strong>Beispiel:</strong>
+                                <button id="speak-example-back" class="speak-btn-icon-sm">🔊 例文</button>
+                            </div>
+                            <p id="example-display"
+                                style="font-style: italic; color: #333; margin: 5px 0; font-size:0.95rem;"></p>
+                            <p style="margin:0;"><small id="example-translation-display" style="color: #666;"></small>
+                            </p>
                         </div>
-                        <hr style="margin: 10px 0; border:0; border-top:1px solid #eee;">
-                        <div class="item-row"><strong>Bedeutung:</strong></div>
-                        <p id="translation-display" style="font-size: 1.1rem; margin: 5px 0 15px 0; font-weight:bold;">
-                        </p>
-                        <div class="item-row">
-                            <strong>Beispiel:</strong>
-                            <button id="speak-example-back" class="speak-btn-icon-sm">🔊 例文</button>
-                        </div>
-                        <p id="example-display"
-                            style="font-style: italic; color: #333; margin: 5px 0; font-size:0.95rem;"></p>
-                        <p style="margin:0;"><small id="example-translation-display" style="color: #666;"></small></p>
+                        <div class="tap-hint" style="bottom: 15px;">Tap to return</div>
                     </div>
-                    <div class="tap-hint" style="bottom: 15px;">Tap to return</div>
                 </div>
             </div>
         </div>
+        <!--4 multiple choice section-->
+        <div>
+            <div id="mc-section" class="hidden">
+
+                <div class="mc-header">
+                    <div class="mc-progress-track">
+                        <div class="mc-progress-bar" id="mc-progress-bar" style="width:0%"></div>
+                    </div>
+                    <div class="mc-meta">
+                        <span id="mc-progress-text">1 / 20</span>
+                        <span id="mc-score-text">正解: 0</span>
+                    </div>
+                </div>
+
+                <div class="mc-question-card">
+                    <div class="mc-category-tag" id="mc-category"></div>
+                    <div class="mc-word" id="mc-word">---</div>
+                    <p class="mc-instruction">日本語の意味を選んでください</p>
+                </div>
+
+                <div class="mc-choices" id="mc-choices"></div>
+
+                <div class="mc-feedback hidden" id="mc-feedback"></div>
+
+                <button class="mc-next-btn hidden" id="mc-next-btn" onclick="App.mcNext()">
+                    次の問題 →
+                </button>
+
+            </div>
+        </div>
+
+
 
         <div class="controls">
             <button id="btn-show" class="btn btn--show">Anzeigen</button>
@@ -71,13 +123,41 @@
                 <button id="btn-mastered" class="btn btn--mastered">Meister!</button>
             </div>
         </div>
+        <!-- ── 4択クイズセクション ── -->
+        <div id="mc-section" class="hidden">
+
+            <div class="mc-header">
+                <div class="mc-progress-track">
+                    <div class="mc-progress-bar" id="mc-progress-bar" style="width:0%"></div>
+                </div>
+                <div class="mc-meta">
+                    <span id="mc-progress-text">1 / 20</span>
+                    <span id="mc-score-text">正解: 0</span>
+                </div>
+            </div>
+
+            <div class="mc-question-card">
+                <div class="mc-category-tag" id="mc-category"></div>
+                <div class="mc-word" id="mc-word">---</div>
+                <p class="mc-instruction">日本語の意味を選んでください</p>
+            </div>
+
+            <div class="mc-choices" id="mc-choices"></div>
+
+            <div class="mc-feedback hidden" id="mc-feedback"></div>
+
+            <button class="mc-next-btn hidden" id="mc-next-btn" onclick="App.mcNext()">
+                次の問題 →
+            </button>
+
+        </div>
 
         <div class="admin-link-container">
             <a href="admin.html" class="admin-link">⚙️ 単語の管理・ステータス変更</a>
         </div>
     </div>
-    <script src="database.js"></script>
-    <script src="script.js"></script>
+    <script src="./scripts/database.js"></script>
+    <script src="./scripts/script.js"></script>
 </body>
 
 </html>
