@@ -1,12 +1,16 @@
+// =============================================
+// quiz_script.js - 4択クイズ対応版 script.js
+// 既存の script.js をこのファイルで置き換える
+// =============================================
+
 let vocabulary = [];
 let chartInstance = null;
-
 let quizQueue = [];
 let isQuizMode = false;
 let quizCorrectCount = 0;
 let quizTotalCount = 0;
 
-// 4択クイズ用（追加）
+// 4択クイズ用
 let isMultipleChoiceMode = false;
 let mcQueue = [];
 let mcCorrectCount = 0;
@@ -20,28 +24,31 @@ const App = {
         this.initChart();
         this.bindEvents();
         this.render();
+        this.updateStreak();
     },
 
     bindEvents() {
-        // カードフリップ（4択中は無効）
         document.getElementById('card').onclick = (e) => {
             if (e.target.closest('.speak-btn-icon') || e.target.closest('.speak-btn-icon-sm')) return;
-            if (isMultipleChoiceMode) return;
+            if (isMultipleChoiceMode) return; // 4択中はカードフリップ無効
             const card = document.getElementById('card');
             if (!card.classList.contains('is-flipped')) this.showAnswer();
             else this.hideAnswer();
         };
 
         document.getElementById('speak-word-front').onclick = (e) => { e.stopPropagation(); this.speak(document.getElementById('word-display').innerText); };
-        document.getElementById('speak-word-back').onclick = (e) => { e.stopPropagation(); this.speak(document.getElementById('word-display-back').innerText); };
+        document.getElementById('speak-word-back').onclick  = (e) => { e.stopPropagation(); this.speak(document.getElementById('word-display-back').innerText); };
         document.getElementById('speak-example-back').onclick = (e) => { e.stopPropagation(); this.speak(document.getElementById('example-display').innerText); };
 
-        document.getElementById('btn-review').onclick = (e) => { e.stopPropagation(); this.handleMark('review'); };
-        document.getElementById('btn-perfect').onclick = (e) => { e.stopPropagation(); this.handleMark('perfect'); };
+        document.getElementById('btn-review').onclick   = (e) => { e.stopPropagation(); this.handleMark('review'); };
+        document.getElementById('btn-perfect').onclick  = (e) => { e.stopPropagation(); this.handleMark('perfect'); };
         document.getElementById('btn-mastered').onclick = (e) => { e.stopPropagation(); this.handleMark('mastered'); };
-        document.getElementById('btn-show').onclick = (e) => { e.stopPropagation(); this.showAnswer(); };
+        document.getElementById('btn-show').onclick     = (e) => { e.stopPropagation(); this.showAnswer(); };
         document.getElementById('btn-start-quiz').onclick = () => this.startQuiz();
+        document.getElementById('btn-start-mc').onclick   = () => this.startMultipleChoice();
     },
+
+    // ─── 通常フラッシュカード ───────────────────────────────
 
     async handleMark(status) {
         this.hideAnswer();
@@ -53,7 +60,6 @@ const App = {
             vocabulary[idx].lastReviewed = new Date().toISOString();
             await DB.save(vocabulary);
         }
-
         if (isQuizMode && quizQueue.length === 0) {
             setTimeout(() => this.showQuizResult(), 400);
             isQuizMode = false;
@@ -64,19 +70,15 @@ const App = {
     showAnswer() {
         const card = document.getElementById('card');
         const faceFront = document.getElementById('face-front');
-        const faceBack = document.getElementById('face-back');
-
+        const faceBack  = document.getElementById('face-back');
         card.classList.add('is-flipped');
-
-        // iPhone Safari対策：アニメーションの中間（0.3秒）で重なり順と透明度を操作
         setTimeout(() => {
             if (card.classList.contains('is-flipped')) {
-                faceFront.style.opacity = "0";      // 表面を透明に
-                faceFront.style.zIndex = "1";       // 表面を下に
-                faceBack.style.zIndex = "2";        // 裏面を上に
+                faceFront.style.opacity = "0";
+                faceFront.style.zIndex  = "1";
+                faceBack.style.zIndex   = "2";
             }
         }, 300);
-
         document.getElementById('btn-show').classList.add('hidden');
         document.getElementById('action-buttons').classList.remove('hidden');
         const ex = document.getElementById('example-display').innerText;
@@ -86,68 +88,53 @@ const App = {
     hideAnswer() {
         const card = document.getElementById('card');
         const faceFront = document.getElementById('face-front');
-        const faceBack = document.getElementById('face-back');
-
+        const faceBack  = document.getElementById('face-back');
         card.classList.remove('is-flipped');
-
-        // 表に戻る時は即座に表面を表示、裏面を透明に
         faceFront.style.opacity = "1";
-        faceFront.style.zIndex = "2";
-        faceBack.style.zIndex = "1";
-
+        faceFront.style.zIndex  = "2";
+        faceBack.style.zIndex   = "1";
         document.getElementById('btn-show').classList.remove('hidden');
         document.getElementById('action-buttons').classList.add('hidden');
     },
 
-    startQuiz() {
-        const pool = vocabulary.filter(v => v.status !== 'mastered');
-        if (pool.length === 0) return alert("未習得の単語がありません。");
-        quizQueue = [...pool].sort(() => 0.5 - Math.random()).slice(0, 20);
-        quizTotalCount = quizQueue.length;
-        quizCorrectCount = 0;
-        isQuizMode = true;
-        this.render();
-    },
-
-    showQuizResult() {
-        const pct = Math.round((quizCorrectCount / quizTotalCount) * 100);
-        alert(`Quiz Beendet!\nResultat: ${quizCorrectCount}/${quizTotalCount} (${pct}%)\n${pct >= 70 ? "Super! 🎉" : "Noch mal! 💪"}`);
-    },
-
-    // ─── 4択クイズ ──────────────────────────────────
+    // ─── 4択クイズ ──────────────────────────────────────────
 
     startMultipleChoice() {
         const pool = vocabulary.filter(v => v.status !== 'mastered');
         if (pool.length < 4) return alert("4択には最低4単語が必要です。");
-
-        mcQueue = [...pool].sort(() => 0.5 - Math.random()).slice(0, 20);
-        mcTotalCount = mcQueue.length;
-        mcCorrectCount = 0;
+        mcQueue          = [...pool].sort(() => 0.5 - Math.random()).slice(0, 20);
+        mcTotalCount     = mcQueue.length;
+        mcCorrectCount   = 0;
         isMultipleChoiceMode = true;
-        isQuizMode = false;
-
-        document.getElementById('card-section').classList.add('hidden');
-        document.getElementById('mc-launch-wrap') && document.getElementById('mc-launch-wrap').classList.add('hidden');
-        document.getElementById('mc-section').classList.remove('hidden');
+        isQuizMode           = false;
         this.renderMC();
+        document.getElementById('mc-section').classList.remove('hidden');
+        document.getElementById('card-section').classList.add('hidden');
+        document.getElementById('quiz-buttons').classList.add('hidden');
     },
 
     renderMC() {
-        if (mcQueue.length === 0) { this.showMCResult(); return; }
+        if (mcQueue.length === 0) {
+            this.showMCResult();
+            return;
+        }
 
         mcAnswered = false;
         const current = mcQueue[0];
-        const qNum = mcTotalCount - mcQueue.length + 1;
-        const pct = Math.round(((qNum - 1) / mcTotalCount) * 100);
+        const qNum    = mcTotalCount - mcQueue.length + 1;
 
+        // 進捗バー更新
+        const pct = Math.round(((qNum - 1) / mcTotalCount) * 100);
         document.getElementById('mc-progress-bar').style.width = pct + '%';
-        document.getElementById('mc-progress-text').innerText = `${qNum} / ${mcTotalCount}`;
-        document.getElementById('mc-score-text').innerText = `正解: ${mcCorrectCount}`;
-        document.getElementById('mc-word').innerText = current.word;
+        document.getElementById('mc-progress-text').innerText  = `${qNum} / ${mcTotalCount}`;
+        document.getElementById('mc-score-text').innerText     = `正解: ${mcCorrectCount}`;
+
+        // 問題表示
+        document.getElementById('mc-word').innerText     = current.word;
         document.getElementById('mc-category').innerText = current.category || '';
         this.speak(current.word);
 
-        // 選択肢：正解1＋ランダム3
+        // 選択肢を生成（正解1つ＋ランダム3つ）
         const wrongs = vocabulary
             .filter(v => String(v.id) !== String(current.id))
             .sort(() => 0.5 - Math.random())
@@ -159,13 +146,14 @@ const App = {
         container.innerHTML = '';
         mcCurrentChoices.forEach((item, i) => {
             const btn = document.createElement('button');
-            btn.className = 'mc-choice-btn';
-            btn.dataset.id = item.id;
-            btn.innerHTML = `<span class="mc-label">${labels[i]}</span><span class="mc-text">${item.translation}</span>`;
-            btn.onclick = () => this.handleMCAnswer(item, btn);
+            btn.className   = 'mc-choice-btn';
+            btn.dataset.id  = item.id;
+            btn.innerHTML   = `<span class="mc-label">${labels[i]}</span><span class="mc-text">${item.translation}</span>`;
+            btn.onclick     = () => this.handleMCAnswer(item, btn);
             container.appendChild(btn);
         });
 
+        // フィードバックエリアをリセット
         document.getElementById('mc-feedback').classList.add('hidden');
         document.getElementById('mc-next-btn').classList.add('hidden');
     },
@@ -174,40 +162,42 @@ const App = {
         if (mcAnswered) return;
         mcAnswered = true;
 
-        const current = mcQueue[0];
+        const current   = mcQueue[0];
         const isCorrect = String(selected.id) === String(current.id);
+        const labels    = ['A', 'B', 'C', 'D'];
 
-        // 全ボタンに正解・不正解色を付ける
+        // 全ボタンを正解・不正解色で表示
         document.querySelectorAll('.mc-choice-btn').forEach((b, i) => {
+            const item = mcCurrentChoices[i];
             b.disabled = true;
-            if (String(mcCurrentChoices[i].id) === String(current.id)) {
+            if (String(item.id) === String(current.id)) {
                 b.classList.add('mc-correct');
             } else if (b === btn && !isCorrect) {
                 b.classList.add('mc-wrong');
             }
         });
 
-        // フィードバック
+        // フィードバック表示
         const feedback = document.getElementById('mc-feedback');
         feedback.classList.remove('hidden', 'mc-feedback-correct', 'mc-feedback-wrong');
-
         if (isCorrect) {
             mcCorrectCount++;
             feedback.classList.add('mc-feedback-correct');
             feedback.innerHTML = `
                 <div class="mc-feedback-icon">✓</div>
-                <div class="mc-feedback-main">正解！</div>
-                <p class="mc-feedback-example">${current.example}</p>
-                <p class="mc-feedback-example-tr">${current.example_translation}</p>
+                <div class="mc-feedback-text">正解！</div>
+                <div class="mc-feedback-example">${current.example}</div>
+                <div class="mc-feedback-example-tr">${current.example_translation}</div>
             `;
+            // ステータス自動更新
             this.upgradeMCStatus(current);
         } else {
             feedback.classList.add('mc-feedback-wrong');
             feedback.innerHTML = `
                 <div class="mc-feedback-icon">✗</div>
-                <div class="mc-feedback-main">不正解 — 正解は「${current.translation}」</div>
-                <p class="mc-feedback-example">${current.example}</p>
-                <p class="mc-feedback-example-tr">${current.example_translation}</p>
+                <div class="mc-feedback-text">不正解 — 正解は「${current.translation}」</div>
+                <div class="mc-feedback-example">${current.example}</div>
+                <div class="mc-feedback-example-tr">${current.example_translation}</div>
             `;
             this.speak(current.example);
         }
@@ -218,116 +208,129 @@ const App = {
     async upgradeMCStatus(item) {
         const idx = vocabulary.findIndex(v => String(v.id) === String(item.id));
         if (idx === -1) return;
-        const map = { new: 'review', review: 'perfect', perfect: 'mastered', mastered: 'mastered' };
-        vocabulary[idx].status = map[vocabulary[idx].status] || 'review';
+        const current = vocabulary[idx].status;
+        // new→review→perfect→mastered の順で昇格
+        const upgrade = { new: 'review', review: 'perfect', perfect: 'mastered', mastered: 'mastered' };
+        vocabulary[idx].status       = upgrade[current] || 'review';
         vocabulary[idx].lastReviewed = new Date().toISOString();
         await DB.save(vocabulary);
     },
 
     mcNext() {
         mcQueue.shift();
-        mcQueue.length === 0 ? this.showMCResult() : this.renderMC();
+        if (mcQueue.length === 0) {
+            this.showMCResult();
+        } else {
+            this.renderMC();
+        }
     },
 
     showMCResult() {
         const pct = Math.round((mcCorrectCount / mcTotalCount) * 100);
-        let grade = 'C', msg = 'Noch mal üben! 💪';
-        if (pct >= 90) { grade = 'S'; msg = 'Ausgezeichnet! 🏆'; }
+        let grade = '', msg = '';
+        if (pct >= 90)      { grade = 'S'; msg = 'Ausgezeichnet! 🏆'; }
         else if (pct >= 70) { grade = 'A'; msg = 'Sehr gut! 🎉'; }
         else if (pct >= 50) { grade = 'B'; msg = 'Gut gemacht! 👍'; }
+        else                { grade = 'C'; msg = 'Noch mal üben! 💪'; }
 
         document.getElementById('mc-section').innerHTML = `
             <div class="mc-result">
                 <div class="mc-result-grade grade-${grade.toLowerCase()}">${grade}</div>
-                <div class="mc-result-score">${mcCorrectCount} <span class="mc-result-total">/ ${mcTotalCount}</span></div>
+                <div class="mc-result-score">${mcCorrectCount} / ${mcTotalCount}</div>
                 <div class="mc-result-pct">${pct}%</div>
                 <div class="mc-result-msg">${msg}</div>
                 <div class="mc-result-breakdown">
-                    <span class="rb-correct">✓ 正解 ${mcCorrectCount}</span>
-                    <span class="rb-wrong">✗ 不正解 ${mcTotalCount - mcCorrectCount}</span>
+                    <span class="mc-rb-correct">✓ 正解 ${mcCorrectCount}</span>
+                    <span class="mc-rb-wrong">✗ 不正解 ${mcTotalCount - mcCorrectCount}</span>
                 </div>
-                <button class="btn btn--show mc-result-btn" onclick="App.exitMC()">学習に戻る</button>
-                <button class="btn btn--success mc-result-btn" style="margin-top:10px;" onclick="App.startMultipleChoice()">もう一度</button>
+                <button class="mc-result-btn" onclick="App.exitMC()">学習に戻る</button>
+                <button class="mc-result-btn mc-result-btn-retry" onclick="App.startMultipleChoice()">もう一度</button>
             </div>
         `;
-        isMultipleChoiceMode = false;
         this.updateStats();
+        isMultipleChoiceMode = false;
     },
 
     exitMC() {
         isMultipleChoiceMode = false;
         document.getElementById('mc-section').classList.add('hidden');
         document.getElementById('card-section').classList.remove('hidden');
-        const wrap = document.getElementById('mc-launch-wrap');
-        if (wrap) wrap.classList.remove('hidden');
+        document.getElementById('quiz-buttons').classList.remove('hidden');
         this.render();
     },
 
+    // ─── 既存クイズ（セルフ採点）──────────────────────────
 
+    startQuiz() {
+        const pool = vocabulary.filter(v => v.status !== 'mastered');
+        if (pool.length === 0) return alert("未習得の単語がありません。");
+        quizQueue    = [...pool].sort(() => 0.5 - Math.random()).slice(0, 20);
+        quizTotalCount   = quizQueue.length;
+        quizCorrectCount = 0;
+        isQuizMode   = true;
+        this.render();
+    },
+
+    showQuizResult() {
+        const pct = Math.round((quizCorrectCount / quizTotalCount) * 100);
+        alert(`Quiz Beendet!\nResultat: ${quizCorrectCount}/${quizTotalCount} (${pct}%)\n${pct >= 70 ? "Super! 🎉" : "Noch mal! 💪"}`);
+    },
+
+    // ─── レンダリング ──────────────────────────────────────
 
     render() {
         this.updateStats();
-
-        const card = document.getElementById('card');
+        const card      = document.getElementById('card');
         const faceFront = document.getElementById('face-front');
-        const faceBack = document.getElementById('face-back');
+        const faceBack  = document.getElementById('face-back');
 
         card.classList.remove('is-flipped');
         faceFront.style.opacity = "1";
-        faceFront.style.zIndex = "2";
-        faceBack.style.zIndex = "1";
+        faceFront.style.zIndex  = "2";
+        faceBack.style.zIndex   = "1";
 
-        // 現在のアイテムを取得
         const list = isQuizMode ? quizQueue : this.getNormalList();
-        const cur = list[0]; // リストの先頭を取得
+        const cur  = list[0];
 
         if (!cur || typeof cur !== 'object') {
             document.getElementById('word-display').innerText = "学習完了！";
             return;
         }
-
-        // 重要：ここで cur.word (例: "absehbar") を直接代入
-        // もし ID (62) などが混ざるなら、ここで明示的にプロパティを指定
-        document.getElementById('word-display').innerText = cur.word;
-        document.getElementById('word-display-back').innerText = cur.word;
-
-        document.getElementById('category-display-back').innerText = cur.category || "";
-        document.getElementById('translation-display').innerText = cur.translation || "";
-        document.getElementById('example-display').innerText = cur.example || "---";
+        document.getElementById('word-display').innerText            = cur.word;
+        document.getElementById('word-display-back').innerText       = cur.word;
+        document.getElementById('category-display-back').innerText   = cur.category || "";
+        document.getElementById('translation-display').innerText     = cur.translation || "";
+        document.getElementById('example-display').innerText         = cur.example || "---";
         document.getElementById('example-translation-display').innerText = cur.example_translation || "";
     },
 
     getNormalList() {
-        // master済でないものを抽出
         const filtered = vocabulary.filter(v => v.status !== 'mastered');
-
-        // 配列自体をランダムに並び替える（フィッシャー・イェーツのシャッフル）
         for (let i = filtered.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
         }
-
         return filtered;
     },
 
     updateStats() {
-        const m = vocabulary.filter(v => v.status === 'mastered').length;
-        const p = vocabulary.filter(v => v.status === 'perfect').length;
+        const m     = vocabulary.filter(v => v.status === 'mastered').length;
+        const p     = vocabulary.filter(v => v.status === 'perfect').length;
         const total = vocabulary.length;
-        const r = Math.max(0, total - m - p);
+        const r     = Math.max(0, total - m - p);
         if (chartInstance) {
             chartInstance.data.datasets[0].data = [m, p, r];
             chartInstance.update();
         }
         document.getElementById('stat-mastered').innerText = m;
-        document.getElementById('stat-perfect').innerText = p;
-        document.getElementById('stat-review').innerText = r;
+        document.getElementById('stat-perfect').innerText  = p;
+        document.getElementById('stat-review').innerText   = r;
 
-        // 習熟度バー
+        // 達成率バー
         const pct = total > 0 ? Math.round((m / total) * 100) : 0;
         const bar = document.getElementById('mastery-bar');
-        const pctEl = document.getElementById('mastery-pct');
         if (bar) bar.style.width = pct + '%';
+        const pctEl = document.getElementById('mastery-pct');
         if (pctEl) pctEl.innerText = pct + '%';
     },
 
@@ -340,11 +343,31 @@ const App = {
         });
     },
 
-    speak(t) {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(t); u.lang = 'de-DE';
-        window.speechSynthesis.speak(u);
+    // 連続学習日数
+    updateStreak() {
+        const key      = 'anki_streak';
+        const today    = new Date().toDateString();
+        const stored   = JSON.parse(localStorage.getItem(key) || '{"count":0,"last":""}');
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
+        let streak = stored.count;
+        if (stored.last === today) {
+            // 今日すでにカウント済み
+        } else if (stored.last === yesterday) {
+            streak++;
+        } else if (stored.last !== today) {
+            streak = 1;
+        }
+        localStorage.setItem(key, JSON.stringify({ count: streak, last: today }));
+        const el = document.getElementById('streak-count');
+        if (el) el.innerText = streak;
     },
 
+    speak(t) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(t);
+        u.lang = 'de-DE';
+        window.speechSynthesis.speak(u);
+    }
 };
+
 window.onload = () => App.init();

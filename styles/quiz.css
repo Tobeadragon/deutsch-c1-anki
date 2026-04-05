@@ -1,0 +1,341 @@
+/* quiz.css — 4択クイズ追加スタイル
+   既存の style.css はそのまま。このファイルを styles/ に追加するだけ */
+ 
+/* ── 習熟度バー ───────────────────────────── */
+.mastery-bar-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.mastery-bar-track {
+  flex: 1;
+  height: 6px;
+  background: #e5e5ea;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.mastery-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #007aff, #34c759);
+  border-radius: 99px;
+  transition: width 0.6s ease;
+}
+
+.mastery-bar-pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-sub, #888);
+  white-space: nowrap;
+  min-width: 32px;
+  text-align: right;
+}
+
+/* ── 4択クイズ起動ボタン ──────────────────── */
+.mc-launch-wrap {
+  padding: 0 16px 8px;
+}
+
+.btn-mc-launch {
+  width: 100%;
+  padding: 12px;
+  background: linear-gradient(135deg, #ff9500, #ff6b35);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 3px 10px rgba(255, 149, 0, 0.3);
+}
+
+.btn-mc-launch:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+/* ── 4択クイズセクション ──────────────────── */
+#mc-section {
+  padding: 0 16px 24px;
+}
+
+/* 進捗ヘッダー */
+.mc-header {
+  padding: 8px 0 14px;
+}
+
+.mc-progress-track {
+  width: 100%;
+  height: 6px;
+  background: #e5e5ea;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.mc-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #ff9500, #ff6b35);
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.mc-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-sub, #888);
+}
+
+/* 問題カード */
+.mc-question-card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px 20px 18px;
+  text-align: center;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+  margin-bottom: 14px;
+}
+
+.mc-category-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #ff9500;
+  background: rgba(255,149,0,0.1);
+  padding: 3px 10px;
+  border-radius: 99px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  min-height: 18px;
+}
+
+.mc-word {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1c1c1e;
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+
+.mc-instruction {
+  font-size: 13px;
+  color: var(--text-sub, #888);
+  margin: 0;
+}
+
+/* 選択肢 */
+.mc-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.mc-choice-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  background: #fff;
+  border: 2px solid #e5e5ea;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 14px;
+  color: #1c1c1e;
+  transition: border-color 0.15s, background 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.mc-choice-btn:not(:disabled):hover {
+  border-color: var(--primary, #007aff);
+  background: rgba(0,122,255,0.04);
+}
+
+.mc-choice-btn:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.mc-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: #f2f2f7;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 800;
+  color: #636366;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s;
+}
+
+.mc-text {
+  flex: 1;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+/* 正解・不正解 */
+.mc-choice-btn.mc-correct {
+  border-color: #34c759;
+  background: rgba(52,199,89,0.07);
+}
+
+.mc-choice-btn.mc-correct .mc-label {
+  background: #34c759;
+  color: #fff;
+}
+
+.mc-choice-btn.mc-wrong {
+  border-color: #ff3b30;
+  background: rgba(255,59,48,0.06);
+}
+
+.mc-choice-btn.mc-wrong .mc-label {
+  background: #ff3b30;
+  color: #fff;
+}
+
+/* フィードバック */
+.mc-feedback {
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.mc-feedback-correct {
+  background: rgba(52,199,89,0.1);
+  border: 1.5px solid rgba(52,199,89,0.25);
+}
+
+.mc-feedback-wrong {
+  background: rgba(255,59,48,0.07);
+  border: 1.5px solid rgba(255,59,48,0.2);
+}
+
+.mc-feedback-icon {
+  font-size: 26px;
+  font-weight: 900;
+  margin-bottom: 4px;
+}
+
+.mc-feedback-correct .mc-feedback-icon { color: #34c759; }
+.mc-feedback-wrong   .mc-feedback-icon { color: #ff3b30; }
+
+.mc-feedback-main {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1c1c1e;
+  margin-bottom: 8px;
+}
+
+.mc-feedback-example {
+  font-size: 13px;
+  font-style: italic;
+  color: #3c3c43;
+  margin: 0 0 4px;
+  line-height: 1.5;
+}
+
+.mc-feedback-example-tr {
+  font-size: 12px;
+  color: var(--text-sub, #888);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 次へボタン */
+.mc-next-btn {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #ff9500, #ff6b35);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 3px 10px rgba(255,149,0,0.3);
+}
+
+.mc-next-btn:active {
+  opacity: 0.85;
+  transform: scale(0.97);
+}
+
+/* ── 結果画面 ─────────────────────────────── */
+.mc-result {
+  text-align: center;
+  padding: 32px 16px 16px;
+}
+
+.mc-result-grade {
+  font-size: 72px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.grade-s { color: #ff9500; }
+.grade-a { color: #34c759; }
+.grade-b { color: #007aff; }
+.grade-c { color: #8e8e93; }
+
+.mc-result-score {
+  font-size: 36px;
+  font-weight: 800;
+  color: #1c1c1e;
+  margin-bottom: 2px;
+}
+
+.mc-result-total {
+  font-size: 22px;
+  color: var(--text-sub, #888);
+  font-weight: 500;
+}
+
+.mc-result-pct {
+  font-size: 20px;
+  color: var(--text-sub, #888);
+  margin-bottom: 12px;
+}
+
+.mc-result-msg {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1c1c1e;
+  margin-bottom: 20px;
+}
+
+.mc-result-breakdown {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 28px;
+}
+
+.rb-correct { color: #34c759; }
+.rb-wrong   { color: #ff3b30; }
+
+.mc-result-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 0;
+}
+
+/* ── ユーティリティ ───────────────────────── */
+.hidden { display: none !important; }
