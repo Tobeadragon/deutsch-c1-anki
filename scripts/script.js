@@ -1,6 +1,10 @@
+// script.js — 4択クイズ機能追加版
+// 既存の script.js をこのファイルで置き換える
+
 let vocabulary = [];
 let chartInstance = null;
 
+// セルフクイズ用（既存）
 let quizQueue = [];
 let isQuizMode = false;
 let quizCorrectCount = 0;
@@ -40,8 +44,15 @@ const App = {
         document.getElementById('btn-perfect').onclick = (e) => { e.stopPropagation(); this.handleMark('perfect'); };
         document.getElementById('btn-mastered').onclick = (e) => { e.stopPropagation(); this.handleMark('mastered'); };
         document.getElementById('btn-show').onclick = (e) => { e.stopPropagation(); this.showAnswer(); };
-        document.getElementById('btn-start-quiz').onclick = () => this.startQuiz();
+
+        // クイズボタン
+        const btnQuiz = document.getElementById('btn-start-quiz');
+        const btnMC = document.getElementById('btn-start-mc');
+        if (btnQuiz) btnQuiz.onclick = () => this.startQuiz();
+        if (btnMC) btnMC.onclick = () => this.startMultipleChoice();
     },
+
+    // ─── 既存フラッシュカード ───────────────────────
 
     async handleMark(status) {
         this.hideAnswer();
@@ -53,7 +64,6 @@ const App = {
             vocabulary[idx].lastReviewed = new Date().toISOString();
             await DB.save(vocabulary);
         }
-
         if (isQuizMode && quizQueue.length === 0) {
             setTimeout(() => this.showQuizResult(), 400);
             isQuizMode = false;
@@ -65,18 +75,14 @@ const App = {
         const card = document.getElementById('card');
         const faceFront = document.getElementById('face-front');
         const faceBack = document.getElementById('face-back');
-
         card.classList.add('is-flipped');
-
-        // iPhone Safari対策：アニメーションの中間（0.3秒）で重なり順と透明度を操作
         setTimeout(() => {
             if (card.classList.contains('is-flipped')) {
-                faceFront.style.opacity = "0";      // 表面を透明に
-                faceFront.style.zIndex = "1";       // 表面を下に
-                faceBack.style.zIndex = "2";        // 裏面を上に
+                faceFront.style.opacity = "0";
+                faceFront.style.zIndex = "1";
+                faceBack.style.zIndex = "2";
             }
         }, 300);
-
         document.getElementById('btn-show').classList.add('hidden');
         document.getElementById('action-buttons').classList.remove('hidden');
         const ex = document.getElementById('example-display').innerText;
@@ -87,14 +93,10 @@ const App = {
         const card = document.getElementById('card');
         const faceFront = document.getElementById('face-front');
         const faceBack = document.getElementById('face-back');
-
         card.classList.remove('is-flipped');
-
-        // 表に戻る時は即座に表面を表示、裏面を透明に
         faceFront.style.opacity = "1";
         faceFront.style.zIndex = "2";
         faceBack.style.zIndex = "1";
-
         document.getElementById('btn-show').classList.remove('hidden');
         document.getElementById('action-buttons').classList.add('hidden');
     },
@@ -263,11 +265,10 @@ const App = {
         this.render();
     },
 
-
+    // ─── レンダリング ──────────────────────────────
 
     render() {
         this.updateStats();
-
         const card = document.getElementById('card');
         const faceFront = document.getElementById('face-front');
         const faceBack = document.getElementById('face-back');
@@ -277,20 +278,15 @@ const App = {
         faceFront.style.zIndex = "2";
         faceBack.style.zIndex = "1";
 
-        // 現在のアイテムを取得
         const list = isQuizMode ? quizQueue : this.getNormalList();
-        const cur = list[0]; // リストの先頭を取得
+        const cur = list[0];
 
         if (!cur || typeof cur !== 'object') {
             document.getElementById('word-display').innerText = "学習完了！";
             return;
         }
-
-        // 重要：ここで cur.word (例: "absehbar") を直接代入
-        // もし ID (62) などが混ざるなら、ここで明示的にプロパティを指定
         document.getElementById('word-display').innerText = cur.word;
         document.getElementById('word-display-back').innerText = cur.word;
-
         document.getElementById('category-display-back').innerText = cur.category || "";
         document.getElementById('translation-display').innerText = cur.translation || "";
         document.getElementById('example-display').innerText = cur.example || "---";
@@ -298,15 +294,11 @@ const App = {
     },
 
     getNormalList() {
-        // master済でないものを抽出
         const filtered = vocabulary.filter(v => v.status !== 'mastered');
-
-        // 配列自体をランダムに並び替える（フィッシャー・イェーツのシャッフル）
         for (let i = filtered.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
         }
-
         return filtered;
     },
 
@@ -342,9 +334,10 @@ const App = {
 
     speak(t) {
         window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(t); u.lang = 'de-DE';
+        const u = new SpeechSynthesisUtterance(t);
+        u.lang = 'de-DE';
         window.speechSynthesis.speak(u);
-    },
-
+    }
 };
+
 window.onload = () => App.init();
