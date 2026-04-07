@@ -1,393 +1,151 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="de">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anki Meister — ログイン</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <title>Login - Anki Meister</title>
+    <link rel="stylesheet" href="./styles/style.css">
     <style>
-        :root {
-            --primary:   #007aff;
-            --success:   #34c759;
-            --danger:    #ff3b30;
-            --bg:        #f2f2f7;
-            --card:      #ffffff;
-            --text:      #1c1c1e;
-            --text-sub:  #8e8e93;
-            --border:    #e5e5ea;
-        }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'Outfit', sans-serif;
-            background: var(--bg);
-            min-height: 100vh;
+        /* 既存のstyle.cssの干渉をリセット */
+        .login-wrapper {
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 24px 16px;
+            min-height: 80vh;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        .login-wrap {
-            width: 100%;
-            max-width: 400px;
-        }
-
-        /* ロゴ */
-        .logo {
-            text-align: center;
-            margin-bottom: 32px;
-        }
-
-        .logo-icon {
-            font-size: 48px;
-            display: block;
-            margin-bottom: 8px;
-            animation: float 3s ease-in-out infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50%       { transform: translateY(-6px); }
-        }
-
-        .logo h1 {
-            font-size: 28px;
-            font-weight: 800;
-            color: var(--text);
-            letter-spacing: -0.5px;
-        }
-
-        .logo p {
-            font-size: 14px;
-            color: var(--text-sub);
-            margin-top: 4px;
-        }
-
-        /* カード */
         .login-card {
-            background: var(--card);
+            background: white;
+            padding: 40px 30px;
             border-radius: 24px;
-            padding: 32px 28px;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-        }
-
-        /* タブ */
-        .tab-wrap {
-            display: flex;
-            background: var(--bg);
-            border-radius: 12px;
-            padding: 4px;
-            margin-bottom: 28px;
-        }
-
-        .tab-btn {
-            flex: 1;
-            padding: 9px;
-            border: none;
-            border-radius: 9px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            background: transparent;
-            color: var(--text-sub);
-            transition: all 0.2s;
-        }
-
-        .tab-btn.active {
-            background: var(--card);
-            color: var(--text);
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        /* フォーム */
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-sub);
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .form-input {
+            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
             width: 100%;
-            padding: 14px 16px;
-            border: 2px solid var(--border);
+            max-width: 360px;
+            writing-mode: horizontal-tb; /* 縦書きを強制リセット */
+            text-align: center;
+        }
+
+        .login-card h2 {
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+
+        .login-card p {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+            line-height: 1.5;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
             border-radius: 12px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 15px;
-            color: var(--text);
-            background: var(--bg);
-            transition: border-color 0.2s;
+            font-size: 16px; /* iPhoneでズームされないサイズ */
+            box-sizing: border-box;
+            transition: border-color 0.3s;
+        }
+
+        .login-input:focus {
+            border-color: var(--primary);
             outline: none;
         }
 
-        .form-input:focus {
-            border-color: var(--primary);
-            background: #fff;
-        }
-
-        /* ボタン */
-        .btn-submit {
+        .btn-primary {
             width: 100%;
-            padding: 15px;
+            padding: 14px;
+            background: var(--primary, #007aff);
+            color: white;
             border: none;
-            border-radius: 14px;
-            font-family: 'Outfit', sans-serif;
-            font-size: 16px;
-            font-weight: 700;
-            color: #fff;
-            background: linear-gradient(135deg, #007aff, #0055d4);
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 1rem;
             cursor: pointer;
-            margin-top: 8px;
-            box-shadow: 0 4px 14px rgba(0,122,255,0.35);
-            transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+            margin-top: 10px;
         }
 
-        .btn-submit:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(0,122,255,0.4);
+        .btn-passkey {
+            width: 100%;
+            padding: 14px;
+            background: #000;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
         }
 
-        .btn-submit:active {
-            transform: scale(0.98);
-            opacity: 0.9;
-        }
-
-        .btn-submit:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* メッセージ */
-        .msg {
-            margin-top: 14px;
-            padding: 12px 16px;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 500;
-            text-align: center;
-            display: none;
-        }
-
-        .msg.success {
-            background: rgba(52,199,89,0.1);
-            color: #1a7a34;
-            border: 1px solid rgba(52,199,89,0.3);
-            display: block;
-        }
-
-        .msg.error {
-            background: rgba(255,59,48,0.08);
-            color: #c0392b;
-            border: 1px solid rgba(255,59,48,0.2);
-            display: block;
-        }
-
-        /* パスワードを忘れた */
-        .forgot-link {
-            display: block;
-            text-align: right;
-            font-size: 13px;
-            color: var(--primary);
-            text-decoration: none;
-            margin-top: 8px;
-            font-weight: 600;
-        }
-
-        .forgot-link:hover { text-decoration: underline; }
-
-        /* ローディングスピナー */
-        .spinner {
-            display: inline-block;
-            width: 16px;
-            height: 16px;
-            border: 2px solid rgba(255,255,255,0.4);
-            border-top-color: #fff;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            vertical-align: middle;
-            margin-right: 6px;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* フッター */
-        .login-footer {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 12px;
-            color: var(--text-sub);
+        .divider {
+            margin: 20px 0;
+            color: #ccc;
+            font-size: 0.8rem;
+            position: relative;
         }
     </style>
 </head>
 <body>
+    <div class="login-wrapper">
+        <h1 style="color: var(--primary); margin-bottom: 20px;">Anki Meister</h1>
+        
+        <div class="login-card">
+            <h2>Willkommen</h2>
+            <p>ログインしてデータを同期しましょう</p>
+            
+            <button id="passkey-btn" class="btn-passkey">
+                <span>🔑</span> パスキーでログイン
+            </button>
 
-<div class="login-wrap">
+            <div class="divider">またはメールアドレス</div>
 
-    <!-- ロゴ -->
-    <div class="logo">
-        <span class="logo-icon">🇩🇪</span>
-        <h1>Anki Meister</h1>
-        <p>ドイツ語C1単語帳</p>
+            <div class="input-group">
+                <input type="email" id="email" class="login-input" placeholder="E-Mail Addresse">
+            </div>
+            
+            <button id="magic-link-btn" class="btn-primary">
+                ログインリンクを送信
+            </button>
+            
+            <p id="msg" style="margin-top: 20px; color: var(--primary); font-weight: bold;"></p>
+        </div>
     </div>
 
-    <!-- カード -->
-    <div class="login-card">
+    <script type="module">
+        import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        <!-- ログイン／登録タブ -->
-        <div class="tab-wrap">
-            <button class="tab-btn active" id="tab-login"  onclick="switchTab('login')">ログイン</button>
-            <button class="tab-btn"        id="tab-signup" onclick="switchTab('signup')">新規登録</button>
-        </div>
-
-        <!-- メールアドレス -->
-        <div class="form-group">
-            <label class="form-label" for="email">メールアドレス</label>
-            <input class="form-input" type="email" id="email"
-                   placeholder="example@email.com" autocomplete="email">
-        </div>
-
-        <!-- パスワード -->
-        <div class="form-group">
-            <label class="form-label" for="password">パスワード</label>
-            <input class="form-input" type="password" id="password"
-                   placeholder="8文字以上" autocomplete="current-password">
-            <a href="#" class="forgot-link" id="forgot-link" onclick="forgotPassword(event)">
-                パスワードを忘れた方
-            </a>
-        </div>
-
-        <!-- 送信ボタン -->
-        <button class="btn-submit" id="btn-submit" onclick="handleSubmit()">
-            ログイン
-        </button>
-
-        <!-- メッセージ -->
-        <div class="msg" id="msg"></div>
-
-    </div>
-
-    <div class="login-footer">
-        © 2026 Anki Meister
-    </div>
-
-</div>
-
-<script src="./scripts/config.js"></script>
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
-let currentTab = 'login';
-
-// タブ切り替え
-window.switchTab = (tab) => {
-    currentTab = tab;
-    document.getElementById('tab-login').classList.toggle('active',  tab === 'login');
-    document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
-    document.getElementById('btn-submit').textContent = tab === 'login' ? 'ログイン' : 'アカウント作成';
-    document.getElementById('forgot-link').style.display = tab === 'login' ? 'block' : 'none';
-    clearMsg();
-};
-
-// ログイン／登録処理
-window.handleSubmit = async () => {
-    const email    = document.getElementById('email').value.trim();
-    const password = document.getElementById('password').value;
-    const btn      = document.getElementById('btn-submit');
-
-    if (!email || !password) {
-        showMsg('メールアドレスとパスワードを入力してください', 'error');
-        return;
-    }
-
-    // ローディング
-    btn.disabled   = true;
-    btn.innerHTML  = '<span class="spinner"></span>処理中...';
-    clearMsg();
-
-    try {
-        if (currentTab === 'login') {
-            // ── ログイン
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
-            if (error) throw error;
-            showMsg('ログイン成功！ 移動します...', 'success');
-            setTimeout(() => window.location.href = 'index.html', 1000);
-
-        } else {
-            // ── 新規登録
-            const { error } = await supabase.auth.signUp({ email, password });
-            if (error) throw error;
-            showMsg('✉️ 確認メールを送りました。メールのリンクをクリックしてください。', 'success');
-        }
-    } catch (err) {
-        // エラーメッセージを日本語化
-        const msgs = {
-            'Invalid login credentials':       'メールアドレスまたはパスワードが違います',
-            'Email not confirmed':             'メールの確認が完了していません',
-            'User already registered':         'このメールアドレスはすでに登録済みです',
-            'Password should be at least 6 characters': 'パスワードは6文字以上にしてください',
+        document.getElementById('magic-link-btn').onclick = async () => {
+            const email = document.getElementById('email').value;
+            if(!email) return alert("Emailを入力してください");
+            
+            const { error } = await supabase.auth.signInWithOtp({
+                email,
+                options: { emailRedirectTo: window.location.origin + '/index.html' }
+            });
+            if (error) alert(error.message);
+            else document.getElementById('msg').innerText = "📩 メールを送信しました。";
         };
-        showMsg(msgs[err.message] || err.message, 'error');
-    } finally {
-        btn.disabled  = false;
-        btn.textContent = currentTab === 'login' ? 'ログイン' : 'アカウント作成';
-    }
-};
 
-// パスワードリセット
-window.forgotPassword = async (e) => {
-    e.preventDefault();
-    const email = document.getElementById('email').value.trim();
-    if (!email) {
-        showMsg('メールアドレスを入力してください', 'error');
-        return;
-    }
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/index.html'
-    });
-    if (error) {
-        showMsg(error.message, 'error');
-    } else {
-        showMsg('✉️ パスワードリセットメールを送りました', 'success');
-    }
-};
-
-// Enterキーで送信
-document.getElementById('password').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') window.handleSubmit();
-});
-
-// ── ユーティリティ
-function showMsg(text, type) {
-    const el = document.getElementById('msg');
-    el.textContent  = text;
-    el.className    = `msg ${type}`;
-}
-
-function clearMsg() {
-    const el = document.getElementById('msg');
-    el.className = 'msg';
-    el.textContent = '';
-}
-
-// すでにログイン済みならindex.htmlへ
-(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) window.location.href = 'index.html';
-})();
-</script>
-
+        document.getElementById('passkey-btn').onclick = async () => {
+            const { error } = await supabase.auth.signInWithPasskey();
+            if (error) alert("パスキーが登録されていません。まずはメールでログインしてください。");
+            else window.location.href = 'index.html';
+        };
+    </script>
 </body>
 </html>
