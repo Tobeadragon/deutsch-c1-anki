@@ -1,15 +1,12 @@
 // database.js
 const DB = {
     key: 'C1_ANKI_DB_PRO',
-    _instance: null, // ここに一度作った接続を保存しておく
+    _instance: null,
 
     _client() {
-        // すでに接続窓口がある場合は、新しく作らずにそれを返す
         if (this._instance) return this._instance;
-
         try {
             if (typeof supabase !== 'undefined' && typeof SUPABASE_URL !== 'undefined') {
-                // 初めての時だけ作成して保存
                 this._instance = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 return this._instance;
             }
@@ -28,50 +25,63 @@ const DB = {
             user = data?.user;
         }
 
-        // 1. ログインしていない場合はローカルストレージ
+        // --- 追加：URLパラメータから対象のデッキIDを取得 ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetDeck = urlParams.get('deck') || 'C1_VOL1'; // 指定がない場合はC1をデフォルトに
+        console.log("Target Deck:", targetDeck);
+        // ----------------------------------------------
+
         if (!user) {
             console.log("Mode: Local");
             const raw = localStorage.getItem(this.key);
-            return raw ? JSON.parse(raw) : [];
+            const localData = raw ? JSON.parse(raw) : [];
+            // ローカル保存データからも、現在のデッキに該当するものだけを返す
+            return localData.filter(item => item.deck_id === targetDeck);
         }
 
-        // 2. ログインしている場合は進捗(progress)を取得
         console.log("Mode: Cloud (User:", user.email, ")");
-        const { data: progressData, error } = await client
+
+        // 1. 指定されたデッキの単語マスタ(cards)のみを取得
+        const { data: cardsData, error: cardsError } = await client
+            .from('cards')
+            .select('*')
+            .eq('deck_id', targetDeck); // ここでA1_FULLかC1_VOL1かを絞り込む
+
+        if (cardsError || !cardsData) {
+            console.error("Cards fetch error:", cardsError);
+            return [];
+        }
+
+        // 2. ログインユーザーの進捗(progress)を取得
+        // ※progress側は全件取得しても、後でcardsData（絞り込み済み）と照合するため問題ありません
+        const { data: progressData } = await client
             .from('progress')
             .select(`card_id, status, last_reviewed`);
 
-        // 3. 単語マスタ(cards)を全件取得
-        const { data: cardsData } = await client.from('cards').select('*');
-
-        if (!cardsData) return [];
-
-        // 4. マスタデータに進捗を合体させる
+        // 3. 絞り込まれたマスタデータに進捗を合体させる
         return cardsData.map(card => {
-            // progressテーブルにデータがあればそれを使い、なければ status: 'new' にする
             const progress = progressData?.find(p => p.card_id === card.id);
             return {
                 id: card.id,
+                deck_id: card.deck_id, // デッキIDも保持しておくと便利です
                 word: card.word,
                 category: card.category,
                 translation: card.translation,
                 example: card.example,
                 example_translation: card.example_translation,
-                status: progress ? progress.status : 'new', // ここがポイント
+                status: progress ? progress.status : 'new',
                 lastReviewed: progress ? progress.last_reviewed : null
             };
         });
     },
 
     async save(items) {
-        // 常にローカルには保存（バックアップ用）
         localStorage.setItem(this.key, JSON.stringify(items));
 
         const client = this._client();
         if (client) {
             const { data: { user } } = await client.auth.getUser();
             if (user) {
-                // Supabaseのprogressテーブルに保存
                 const rows = items.map(item => ({
                     user_id: user.id,
                     card_id: item.id,
