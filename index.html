@@ -8,6 +8,30 @@
     <link rel="stylesheet" href="./styles/style.css">
     <link rel="stylesheet" href="./styles/quiz.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        (function () {
+            // 1. URLにログイン用トークン(#access_token)が含まれているかチェック
+            const isAuthCallback = window.location.hash.includes('access_token=');
+
+            // 2. スキップボタン経由かチェック
+            const urlParams = new URLSearchParams(window.location.search);
+            const isSkipped = urlParams.get('skip') === 'true' || sessionStorage.getItem('login_skipped');
+
+            // 3. すでにログイン済みかチェック (localStorageのキーを確認)
+            // ※ 'your-project-id' はご自身のものに書き換えてください
+            const hasSession = Object.keys(localStorage).some(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
+
+            // 【判定】トークンもなく、スキップもしておらず、セッションもない場合のみログインへ
+            if (!isAuthCallback && !isSkipped && !hasSession) {
+                window.location.href = 'login.html';
+            }
+
+            // スキップで来た場合はフラグを保存
+            if (urlParams.get('skip') === 'true') {
+                sessionStorage.setItem('login_skipped', 'true');
+            }
+        })();
+    </script>
 </head>
 
 <body>
@@ -156,6 +180,8 @@
             <a href="admin.html" class="admin-link">⚙️ 単語の管理・ステータス変更</a>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="./scripts/config.js"></script>
     <script src="./scripts/database.js"></script>
     <script src="./scripts/script.js"></script>
 </body>

@@ -1,63 +1,30 @@
 <!DOCTYPE html>
 <html lang="de">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Anki Meister</title>
     <link rel="stylesheet" href="./styles/style.css">
     <style>
-        /* 既存のstyle.cssの干渉をリセット */
         .login-wrapper {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            min-height: 80vh;
+            min-height: 90vh;
             padding: 20px;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            writing-mode: horizontal-tb;
         }
 
         .login-card {
             background: white;
             padding: 40px 30px;
             border-radius: 24px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
             width: 100%;
             max-width: 360px;
-            writing-mode: horizontal-tb; /* 縦書きを強制リセット */
             text-align: center;
-        }
-
-        .login-card h2 {
-            margin-bottom: 10px;
-            color: var(--primary);
-        }
-
-        .login-card p {
-            color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 25px;
-            line-height: 1.5;
-        }
-
-        .input-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-
-        .login-input {
-            width: 100%;
-            padding: 14px;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            font-size: 16px; /* iPhoneでズームされないサイズ */
-            box-sizing: border-box;
-            transition: border-color 0.3s;
-        }
-
-        .login-input:focus {
-            border-color: var(--primary);
-            outline: none;
         }
 
         .btn-primary {
@@ -68,7 +35,6 @@
             border: none;
             border-radius: 12px;
             font-weight: bold;
-            font-size: 1rem;
             cursor: pointer;
             margin-top: 10px;
         }
@@ -81,7 +47,6 @@
             border: none;
             border-radius: 12px;
             font-weight: bold;
-            font-size: 1rem;
             cursor: pointer;
             display: flex;
             align-items: center;
@@ -90,62 +55,108 @@
             margin-bottom: 15px;
         }
 
+        .btn-skip {
+            width: 100%;
+            padding: 12px;
+            background: #f0f0f0;
+            color: #666;
+            border: 2px dashed #ccc;
+            border-radius: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: 0.3s;
+        }
+
+        .btn-skip:hover {
+            background: #e0e0e0;
+            border-color: #999;
+            color: #333;
+        }
+
         .divider {
             margin: 20px 0;
             color: #ccc;
             font-size: 0.8rem;
-            position: relative;
+        }
+
+        .login-input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            font-size: 16px;
+            box-sizing: border-box;
         }
     </style>
 </head>
+
 <body>
     <div class="login-wrapper">
         <h1 style="color: var(--primary); margin-bottom: 20px;">Anki Meister</h1>
-        
+
         <div class="login-card">
             <h2>Willkommen</h2>
-            <p>ログインしてデータを同期しましょう</p>
-            
-            <button id="passkey-btn" class="btn-passkey">
-                <span>🔑</span> パスキーでログイン
-            </button>
+            <p style="color:#666; font-size:0.9rem; margin-bottom:20px;">進捗を同期するにはログインしてください</p>
+
+            <button id="passkey-btn" class="btn-passkey">🔑 パスキーでログイン</button>
 
             <div class="divider">またはメールアドレス</div>
 
-            <div class="input-group">
-                <input type="email" id="email" class="login-input" placeholder="E-Mail Addresse">
-            </div>
-            
-            <button id="magic-link-btn" class="btn-primary">
-                ログインリンクを送信
+            <input type="email" id="email" class="login-input" placeholder="E-Mail Addresse">
+            <button id="magic-link-btn" class="btn-primary">ログインリンク送信</button>
+
+            <button id="skip-btn" class="btn-skip">
+                🧪 検証用：ログインせずに開始<br>
+                <small>(ローカルストレージを使用)</small>
             </button>
-            
+
             <p id="msg" style="margin-top: 20px; color: var(--primary); font-weight: bold;"></p>
         </div>
     </div>
 
-    <script type="module">
-        import { SUPABASE_URL, SUPABASE_KEY } from './config.js';
-        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-        const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+    <script src="./scripts/config.js"></script>
+
+    <script>
+        // type="module" を外したので、普通の JavaScript として動きます
+
+        // Supabaseの初期化
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 1. マジックリンク送信
         document.getElementById('magic-link-btn').onclick = async () => {
             const email = document.getElementById('email').value;
-            if(!email) return alert("Emailを入力してください");
-            
-            const { error } = await supabase.auth.signInWithOtp({
+            if (!email) return alert("Emailを入力してください");
+
+            const { error } = await supabaseClient.auth.signInWithOtp({
                 email,
                 options: { emailRedirectTo: window.location.origin + '/index.html' }
             });
+
             if (error) alert(error.message);
             else document.getElementById('msg').innerText = "📩 メールを送信しました。";
         };
 
+        // 2. パキーログイン
         document.getElementById('passkey-btn').onclick = async () => {
-            const { error } = await supabase.auth.signInWithPasskey();
-            if (error) alert("パスキーが登録されていません。まずはメールでログインしてください。");
+            const { error } = await supabaseClient.auth.signInWithPasskey();
+            if (error) alert("パスキー未登録です。まずはメールでログインしてください。");
             else window.location.href = 'index.html';
         };
+
+        // 3. スキップボタン（?skip=true を付けて index.html に戻る）
+        document.getElementById('skip-btn').onclick = function () {
+            console.log("Skip button clicked");
+            // URLにパラメータを付けることで、index.html側での強制追い返しを防ぎます
+            window.location.href = 'index.html?skip=true';
+        };
+
+        // 4. (将来用) 新規ユーザー登録への配慮
+        // 実は上記のマジックリンク送信(1)が、新規登録も兼ねています。
+        // 初めてのメールアドレスなら自動で「サインアップ」扱いになります。
     </script>
 </body>
+
 </html>
