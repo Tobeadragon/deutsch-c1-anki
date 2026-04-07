@@ -130,9 +130,14 @@
             const email = document.getElementById('email').value;
             if (!email) return alert("Emailを入力してください");
 
+            // 現在のパス（/deutsch-c1-anki/login.html）から index.html へのパスを自動生成
+            const redirectUrl = window.location.href.replace('login.html', 'index.html');
+
             const { error } = await supabaseClient.auth.signInWithOtp({
                 email,
-                options: { emailRedirectTo: window.location.origin + '/index.html' }
+                options: {
+                    emailRedirectTo: redirectUrl
+                }
             });
 
             if (error) alert(error.message);
