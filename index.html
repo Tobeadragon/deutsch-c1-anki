@@ -10,23 +10,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         (function () {
-            // 1. URLにログイン用トークン(#access_token)が含まれているかチェック
             const isAuthCallback = window.location.hash.includes('access_token=');
-
-            // 2. スキップボタン経由かチェック
             const urlParams = new URLSearchParams(window.location.search);
             const isSkipped = urlParams.get('skip') === 'true' || sessionStorage.getItem('login_skipped');
-
-            // 3. すでにログイン済みかチェック (localStorageのキーを確認)
-            // ※ 'your-project-id' はご自身のものに書き換えてください
             const hasSession = Object.keys(localStorage).some(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
 
-            // 【判定】トークンもなく、スキップもしておらず、セッションもない場合のみログインへ
             if (!isAuthCallback && !isSkipped && !hasSession) {
                 window.location.href = 'login.html';
             }
-
-            // スキップで来た場合はフラグを保存
             if (urlParams.get('skip') === 'true') {
                 sessionStorage.setItem('login_skipped', 'true');
             }
@@ -41,6 +32,16 @@
                 <h1>Anki Meister</h1>
                 <button id="btn-start-quiz" class="quiz-badge">🚀 本日のクイズ (20問)</button>
             </div>
+
+            <div id="deck-info-tag" style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+                <span style="background: var(--primary); color: white; padding: 2px 10px; border-radius: 12px; font-size: 0.7rem; font-weight: bold; text-transform: uppercase;">
+                    Deck
+                </span>
+                <span id="current-deck-name" style="font-weight: bold; color: var(--text-main); font-size: 0.95rem;">
+                    Laden...
+                </span>
+            </div>
+
             <div class="dashboard-card">
                 <div class="chart-box"><canvas id="progressChart"></canvas></div>
                 <div class="stats-grid">
@@ -49,22 +50,18 @@
                     <div class="stat-item"><span class="dot gray"></span> 復習: <span id="stat-review">0</span></div>
                 </div>
             </div>
-            <!--status bar-->
             <div class="mastery-bar-wrap">
                 <div class="mastery-bar-track">
                     <div class="mastery-bar-fill" id="mastery-bar" style="width:0%"></div>
                 </div>
                 <span class="mastery-bar-pct" id="mastery-pct">0%</span>
             </div>
-
         </header>
 
-        <!-- 4択クイズ起動ボタン -->
         <div id="mc-launch-wrap" class="mc-launch-wrap">
             <button id="btn-start-mc" class="btn-mc-launch">✏️ 4択クイズ (20問)</button>
         </div>
 
-        <!--Flashcard Section-->
         <div id="card-section">
             <div class="scene">
                 <div id="card" class="anki-card">
@@ -79,77 +76,28 @@
                         <div class="back-content">
                             <div class="item-row" style="align-items: flex-start;">
                                 <div>
-                                    <h3 id="word-display-back"
-                                        style="margin:0; font-size:1.4rem; color:var(--primary);">
-                                    </h3>
-                                    <small id="category-display-back"
-                                        style="color:var(--text-sub); font-weight:bold;"></small>
+                                    <h3 id="word-display-back" style="margin:0; font-size:1.4rem; color:var(--primary);"></h3>
+                                    <small id="category-display-back" style="color:var(--text-sub); font-weight:bold;"></small>
                                 </div>
                                 <button id="speak-word-back" class="speak-btn-icon-sm">🔊 単語</button>
                             </div>
                             <hr style="margin: 10px 0; border:0; border-top:1px solid #eee;">
                             <div class="item-row"><strong>Bedeutung:</strong></div>
-                            <p id="translation-display"
-                                style="font-size: 1.1rem; margin: 5px 0 15px 0; font-weight:bold;">
-                            </p>
+                            <p id="translation-display" style="font-size: 1.1rem; margin: 5px 0 15px 0; font-weight:bold;"></p>
                             <div class="item-row">
                                 <strong>Beispiel:</strong>
                                 <button id="speak-example-back" class="speak-btn-icon-sm">🔊 例文</button>
                             </div>
-                            <p id="example-display"
-                                style="font-style: italic; color: #333; margin: 5px 0; font-size:0.95rem;"></p>
-                            <p style="margin:0;"><small id="example-translation-display" style="color: #666;"></small>
-                            </p>
+                            <p id="example-display" style="font-style: italic; color: #333; margin: 5px 0; font-size:0.95rem;"></p>
+                            <p style="margin:0;"><small id="example-translation-display" style="color: #666;"></small></p>
                         </div>
                         <div class="tap-hint" style="bottom: 15px;">Tap to return</div>
                     </div>
                 </div>
             </div>
         </div>
-        <!--4 multiple choice section-->
-        <div>
-            <div id="mc-section" class="hidden">
 
-                <div class="mc-header">
-                    <div class="mc-progress-track">
-                        <div class="mc-progress-bar" id="mc-progress-bar" style="width:0%"></div>
-                    </div>
-                    <div class="mc-meta">
-                        <span id="mc-progress-text">1 / 20</span>
-                        <span id="mc-score-text">正解: 0</span>
-                    </div>
-                </div>
-
-                <div class="mc-question-card">
-                    <div class="mc-category-tag" id="mc-category"></div>
-                    <div class="mc-word" id="mc-word">---</div>
-                    <p class="mc-instruction">日本語の意味を選んでください</p>
-                </div>
-
-                <div class="mc-choices" id="mc-choices"></div>
-
-                <div class="mc-feedback hidden" id="mc-feedback"></div>
-
-                <button class="mc-next-btn hidden" id="mc-next-btn" onclick="App.mcNext()">
-                    次の問題 →
-                </button>
-
-            </div>
-        </div>
-
-
-
-        <div class="controls">
-            <button id="btn-show" class="btn btn--show">Anzeigen</button>
-            <div id="action-buttons" class="hidden btn-row">
-                <button id="btn-review" class="btn btn--danger">Noch mal</button>
-                <button id="btn-perfect" class="btn btn--success">Gelernt</button>
-                <button id="btn-mastered" class="btn btn--mastered">Meister!</button>
-            </div>
-        </div>
-        <!-- ── 4択クイズセクション ── -->
         <div id="mc-section" class="hidden">
-
             <div class="mc-header">
                 <div class="mc-progress-track">
                     <div class="mc-progress-bar" id="mc-progress-bar" style="width:0%"></div>
@@ -159,21 +107,23 @@
                     <span id="mc-score-text">正解: 0</span>
                 </div>
             </div>
-
             <div class="mc-question-card">
                 <div class="mc-category-tag" id="mc-category"></div>
                 <div class="mc-word" id="mc-word">---</div>
                 <p class="mc-instruction">日本語の意味を選んでください</p>
             </div>
-
             <div class="mc-choices" id="mc-choices"></div>
-
             <div class="mc-feedback hidden" id="mc-feedback"></div>
+            <button class="mc-next-btn hidden" id="mc-next-btn" onclick="App.mcNext()">次の問題 →</button>
+        </div>
 
-            <button class="mc-next-btn hidden" id="mc-next-btn" onclick="App.mcNext()">
-                次の問題 →
-            </button>
-
+        <div class="controls">
+            <button id="btn-show" class="btn btn--show">Anzeigen</button>
+            <div id="action-buttons" class="hidden btn-row">
+                <button id="btn-review" class="btn btn--danger">Noch mal</button>
+                <button id="btn-perfect" class="btn btn--success">Gelernt</button>
+                <button id="btn-mastered" class="btn btn--mastered">Meister!</button>
+            </div>
         </div>
 
         <div class="admin-link-container">
@@ -185,5 +135,4 @@
     <script src="./scripts/database.js"></script>
     <script src="./scripts/script.js"></script>
 </body>
-
 </html>

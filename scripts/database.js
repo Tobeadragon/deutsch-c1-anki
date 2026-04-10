@@ -1,7 +1,7 @@
-// database.js
 const DB = {
     key: 'C1_ANKI_DB_PRO',
     _instance: null,
+    currentDeckId: null, // 現在のデッキIDを保持
 
     _client() {
         if (this._instance) return this._instance;
@@ -25,45 +25,39 @@ const DB = {
             user = data?.user;
         }
 
-        // --- 追加：URLパラメータから対象のデッキIDを取得 ---
+        // URLパラメータから対象のデッキIDを取得
         const urlParams = new URLSearchParams(window.location.search);
-        const targetDeck = urlParams.get('deck') || 'C1_VOL1'; // 指定がない場合はC1をデフォルトに
-        console.log("Target Deck:", targetDeck);
-        // ----------------------------------------------
+        this.currentDeckId = urlParams.get('deck') || 'C1_VOL1';
+        console.log("Target Deck:", this.currentDeckId);
 
         if (!user) {
             console.log("Mode: Local");
             const raw = localStorage.getItem(this.key);
             const localData = raw ? JSON.parse(raw) : [];
-            // ローカル保存データからも、現在のデッキに該当するものだけを返す
-            return localData.filter(item => item.deck_id === targetDeck);
+            return localData.filter(item => item.deck_id === this.currentDeckId);
         }
 
         console.log("Mode: Cloud (User:", user.email, ")");
 
-        // 1. 指定されたデッキの単語マスタ(cards)のみを取得
         const { data: cardsData, error: cardsError } = await client
             .from('cards')
             .select('*')
-            .eq('deck_id', targetDeck); // ここでA1_FULLかC1_VOL1かを絞り込む
+            .eq('deck_id', this.currentDeckId);
 
         if (cardsError || !cardsData) {
             console.error("Cards fetch error:", cardsError);
             return [];
         }
 
-        // 2. ログインユーザーの進捗(progress)を取得
-        // ※progress側は全件取得しても、後でcardsData（絞り込み済み）と照合するため問題ありません
         const { data: progressData } = await client
             .from('progress')
             .select(`card_id, status, last_reviewed`);
 
-        // 3. 絞り込まれたマスタデータに進捗を合体させる
         return cardsData.map(card => {
             const progress = progressData?.find(p => p.card_id === card.id);
             return {
                 id: card.id,
-                deck_id: card.deck_id, // デッキIDも保持しておくと便利です
+                deck_id: card.deck_id,
                 word: card.word,
                 category: card.category,
                 translation: card.translation,
@@ -77,7 +71,6 @@ const DB = {
 
     async save(items) {
         localStorage.setItem(this.key, JSON.stringify(items));
-
         const client = this._client();
         if (client) {
             const { data: { user } } = await client.auth.getUser();
@@ -88,11 +81,9 @@ const DB = {
                     status: item.status,
                     last_reviewed: item.lastReviewed || new Date().toISOString()
                 }));
-
                 const { error } = await client
                     .from('progress')
                     .upsert(rows, { onConflict: 'user_id,card_id' });
-
                 if (error) console.error("Cloud save failed:", error);
             }
         }

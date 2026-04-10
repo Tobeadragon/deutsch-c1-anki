@@ -1,16 +1,11 @@
-// script.js — 4択クイズ機能追加版
-// 既存の script.js をこのファイルで置き換える
-
 let vocabulary = [];
 let chartInstance = null;
 
-// セルフクイズ用（既存）
 let quizQueue = [];
 let isQuizMode = false;
 let quizCorrectCount = 0;
 let quizTotalCount = 0;
 
-// 4択クイズ用（追加）
 let isMultipleChoiceMode = false;
 let mcQueue = [];
 let mcCorrectCount = 0;
@@ -21,13 +16,28 @@ let mcAnswered = false;
 const App = {
     async init() {
         vocabulary = await DB.fetchAll();
+
+        // --- 追加：デッキ名の表示 ---
+        this.renderDeckName(DB.currentDeckId);
+
         this.initChart();
         this.bindEvents();
         this.render();
     },
 
+    renderDeckName(id) {
+        const el = document.getElementById('current-deck-name');
+        if (!el) return;
+        const nameMap = {
+            'FREE_SAMPLE': '🆓 無料サンプル',
+            'A1_FULL': '🇩🇪 ドイツ語 A1',
+            'B1_VOL1': '🇩🇪 ドイツ語 B1',
+            'C1_VOL1': '🇩🇪 ドイツ語 C1'
+        };
+        el.innerText = nameMap[id] || id.replace(/_/g, ' ');
+    },
+
     bindEvents() {
-        // カードフリップ（4択中は無効）
         document.getElementById('card').onclick = (e) => {
             if (e.target.closest('.speak-btn-icon') || e.target.closest('.speak-btn-icon-sm')) return;
             if (isMultipleChoiceMode) return;
@@ -45,14 +55,11 @@ const App = {
         document.getElementById('btn-mastered').onclick = (e) => { e.stopPropagation(); this.handleMark('mastered'); };
         document.getElementById('btn-show').onclick = (e) => { e.stopPropagation(); this.showAnswer(); };
 
-        // クイズボタン
         const btnQuiz = document.getElementById('btn-start-quiz');
         const btnMC = document.getElementById('btn-start-mc');
         if (btnQuiz) btnQuiz.onclick = () => this.startQuiz();
         if (btnMC) btnMC.onclick = () => this.startMultipleChoice();
     },
-
-    // ─── 既存フラッシュカード ───────────────────────
 
     async handleMark(status) {
         this.hideAnswer();
@@ -116,18 +123,14 @@ const App = {
         alert(`Quiz Beendet!\nResultat: ${quizCorrectCount}/${quizTotalCount} (${pct}%)\n${pct >= 70 ? "Super! 🎉" : "Noch mal! 💪"}`);
     },
 
-    // ─── 4択クイズ ──────────────────────────────────
-
     startMultipleChoice() {
         const pool = vocabulary.filter(v => v.status !== 'mastered');
         if (pool.length < 4) return alert("4択には最低4単語が必要です。");
-
         mcQueue = [...pool].sort(() => 0.5 - Math.random()).slice(0, 20);
         mcTotalCount = mcQueue.length;
         mcCorrectCount = 0;
         isMultipleChoiceMode = true;
         isQuizMode = false;
-
         document.getElementById('card-section').classList.add('hidden');
         document.getElementById('mc-launch-wrap') && document.getElementById('mc-launch-wrap').classList.add('hidden');
         document.getElementById('mc-section').classList.remove('hidden');
@@ -136,26 +139,21 @@ const App = {
 
     renderMC() {
         if (mcQueue.length === 0) { this.showMCResult(); return; }
-
         mcAnswered = false;
         const current = mcQueue[0];
         const qNum = mcTotalCount - mcQueue.length + 1;
         const pct = Math.round(((qNum - 1) / mcTotalCount) * 100);
-
         document.getElementById('mc-progress-bar').style.width = pct + '%';
         document.getElementById('mc-progress-text').innerText = `${qNum} / ${mcTotalCount}`;
         document.getElementById('mc-score-text').innerText = `正解: ${mcCorrectCount}`;
         document.getElementById('mc-word').innerText = current.word;
         document.getElementById('mc-category').innerText = current.category || '';
         this.speak(current.word);
-
-        // 選択肢：正解1＋ランダム3
         const wrongs = vocabulary
             .filter(v => String(v.id) !== String(current.id))
             .sort(() => 0.5 - Math.random())
             .slice(0, 3);
         mcCurrentChoices = [...wrongs, current].sort(() => 0.5 - Math.random());
-
         const labels = ['A', 'B', 'C', 'D'];
         const container = document.getElementById('mc-choices');
         container.innerHTML = '';
@@ -167,7 +165,6 @@ const App = {
             btn.onclick = () => this.handleMCAnswer(item, btn);
             container.appendChild(btn);
         });
-
         document.getElementById('mc-feedback').classList.add('hidden');
         document.getElementById('mc-next-btn').classList.add('hidden');
     },
@@ -175,45 +172,25 @@ const App = {
     handleMCAnswer(selected, btn) {
         if (mcAnswered) return;
         mcAnswered = true;
-
         const current = mcQueue[0];
         const isCorrect = String(selected.id) === String(current.id);
-
-        // 全ボタンに正解・不正解色を付ける
         document.querySelectorAll('.mc-choice-btn').forEach((b, i) => {
             b.disabled = true;
-            if (String(mcCurrentChoices[i].id) === String(current.id)) {
-                b.classList.add('mc-correct');
-            } else if (b === btn && !isCorrect) {
-                b.classList.add('mc-wrong');
-            }
+            if (String(mcCurrentChoices[i].id) === String(current.id)) b.classList.add('mc-correct');
+            else if (b === btn && !isCorrect) b.classList.add('mc-wrong');
         });
-
-        // フィードバック
         const feedback = document.getElementById('mc-feedback');
         feedback.classList.remove('hidden', 'mc-feedback-correct', 'mc-feedback-wrong');
-
         if (isCorrect) {
             mcCorrectCount++;
             feedback.classList.add('mc-feedback-correct');
-            feedback.innerHTML = `
-                <div class="mc-feedback-icon">✓</div>
-                <div class="mc-feedback-main">正解！</div>
-                <p class="mc-feedback-example">${current.example}</p>
-                <p class="mc-feedback-example-tr">${current.example_translation}</p>
-            `;
+            feedback.innerHTML = `<div class="mc-feedback-icon">✓</div><div class="mc-feedback-main">正解！</div><p class="mc-feedback-example">${current.example}</p><p class="mc-feedback-example-tr">${current.example_translation}</p>`;
             this.upgradeMCStatus(current);
         } else {
             feedback.classList.add('mc-feedback-wrong');
-            feedback.innerHTML = `
-                <div class="mc-feedback-icon">✗</div>
-                <div class="mc-feedback-main">不正解 — 正解は「${current.translation}」</div>
-                <p class="mc-feedback-example">${current.example}</p>
-                <p class="mc-feedback-example-tr">${current.example_translation}</p>
-            `;
+            feedback.innerHTML = `<div class="mc-feedback-icon">✗</div><div class="mc-feedback-main">不正解 — 正解は「${current.translation}」</div><p class="mc-feedback-example">${current.example}</p><p class="mc-feedback-example-tr">${current.example_translation}</p>`;
             this.speak(current.example);
         }
-
         document.getElementById('mc-next-btn').classList.remove('hidden');
     },
 
@@ -237,19 +214,13 @@ const App = {
         if (pct >= 90) { grade = 'S'; msg = 'Ausgezeichnet! 🏆'; }
         else if (pct >= 70) { grade = 'A'; msg = 'Sehr gut! 🎉'; }
         else if (pct >= 50) { grade = 'B'; msg = 'Gut gemacht! 👍'; }
-
         document.getElementById('mc-section').innerHTML = `
             <div class="mc-result">
                 <div class="mc-result-grade grade-${grade.toLowerCase()}">${grade}</div>
                 <div class="mc-result-score">${mcCorrectCount} <span class="mc-result-total">/ ${mcTotalCount}</span></div>
                 <div class="mc-result-pct">${pct}%</div>
                 <div class="mc-result-msg">${msg}</div>
-                <div class="mc-result-breakdown">
-                    <span class="rb-correct">✓ 正解 ${mcCorrectCount}</span>
-                    <span class="rb-wrong">✗ 不正解 ${mcTotalCount - mcCorrectCount}</span>
-                </div>
                 <button class="btn btn--show mc-result-btn" onclick="App.exitMC()">学習に戻る</button>
-                <button class="btn btn--success mc-result-btn" style="margin-top:10px;" onclick="App.startMultipleChoice()">もう一度</button>
             </div>
         `;
         isMultipleChoiceMode = false;
@@ -260,28 +231,22 @@ const App = {
         isMultipleChoiceMode = false;
         document.getElementById('mc-section').classList.add('hidden');
         document.getElementById('card-section').classList.remove('hidden');
-        const wrap = document.getElementById('mc-launch-wrap');
-        if (wrap) wrap.classList.remove('hidden');
+        if (document.getElementById('mc-launch-wrap')) document.getElementById('mc-launch-wrap').classList.remove('hidden');
         this.render();
     },
-
-    // ─── レンダリング ──────────────────────────────
 
     render() {
         this.updateStats();
         const card = document.getElementById('card');
         const faceFront = document.getElementById('face-front');
         const faceBack = document.getElementById('face-back');
-
         card.classList.remove('is-flipped');
         faceFront.style.opacity = "1";
         faceFront.style.zIndex = "2";
         faceBack.style.zIndex = "1";
-
         const list = isQuizMode ? quizQueue : this.getNormalList();
         const cur = list[0];
-
-        if (!cur || typeof cur !== 'object') {
+        if (!cur) {
             document.getElementById('word-display').innerText = "学習完了！";
             return;
         }
@@ -314,13 +279,9 @@ const App = {
         document.getElementById('stat-mastered').innerText = m;
         document.getElementById('stat-perfect').innerText = p;
         document.getElementById('stat-review').innerText = r;
-
-        // 習熟度バー
         const pct = total > 0 ? Math.round((m / total) * 100) : 0;
-        const bar = document.getElementById('mastery-bar');
-        const pctEl = document.getElementById('mastery-pct');
-        if (bar) bar.style.width = pct + '%';
-        if (pctEl) pctEl.innerText = pct + '%';
+        if (document.getElementById('mastery-bar')) document.getElementById('mastery-bar').style.width = pct + '%';
+        if (document.getElementById('mastery-pct')) document.getElementById('mastery-pct').innerText = pct + '%';
     },
 
     initChart() {
