@@ -17,6 +17,7 @@ const DB = {
     },
 
     // ユーザーが購読しているデッキ + マイ辞書を取得
+    // database.js の fetchUserDecks 関数を差し替え
     async fetchUserDecks() {
         const client = this._client();
         if (!client) return [{ deck_id: 'FREE_SAMPLE' }];
@@ -25,16 +26,32 @@ const DB = {
 
         let decks = [];
         if (user) {
-            const { data } = await client.from('subscriptions').select('deck_id').eq('user_id', user.id);
-            decks = data || [];
-            // ログイン中なら必ず「マイ辞書」を選択肢に加える
-            decks.push({ deck_id: 'User_Deck' });
+            // 1. 購読中の公式デッキを取得
+            const { data: subData } = await client
+                .from('subscriptions')
+                .select('deck_id')
+                .eq('user_id', user.id);
+
+            if (subData) decks = subData.map(d => ({ deck_id: d.deck_id }));
+
+            // 2. ★ 自分の作成した単語（User_Deck）が1件以上あるかカウント
+            const { count, error } = await client
+                .from('cards')
+                .select('*', { count: 'exact', head: true })
+                .eq('deck_id', 'User_Deck')
+                .eq('created_by', user.id);
+
+            // 1件以上あればリストに追加
+            if (!error && count > 0) {
+                decks.push({ deck_id: 'User_Deck' });
+            }
         } else {
             decks.push({ deck_id: 'FREE_SAMPLE' });
         }
 
-        // 重複削除
-        return Array.from(new Set(decks.map(d => d.deck_id))).map(id => ({ deck_id: id }));
+        // 重複を排除して返却
+        const uniqueIds = Array.from(new Set(decks.map(d => d.deck_id)));
+        return uniqueIds.map(id => ({ deck_id: id }));
     },
 
     async fetchAll() {
