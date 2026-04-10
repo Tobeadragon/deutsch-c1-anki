@@ -283,13 +283,23 @@ const App = {
         document.getElementById('example-translation-display').innerText = cur.example_translation || "";
     },
 
+    // script.js の getNormalList を修正
     getNormalList() {
-        const filtered = vocabulary.filter(v => v.status !== 'mastered');
-        for (let i = filtered.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+        const now = new Date();
+
+        // 1. 「今日が復習予定日」かつ「未習得」の単語を抽出
+        const reviewList = vocabulary.filter(v => {
+            const nextDate = v.next_review_date ? new Date(v.next_review_date) : new Date(0);
+            return v.status !== 'mastered' && nextDate <= now;
+        });
+
+        // 2. 復習対象がなければ、新しい単語（statusがnewのものなど）を混ぜる
+        if (reviewList.length === 0) {
+            return vocabulary.filter(v => v.status !== 'mastered').slice(0, 10);
         }
-        return filtered;
+
+        // シャッフルして返す
+        return reviewList.sort(() => 0.5 - Math.random());
     },
 
     updateStats() {

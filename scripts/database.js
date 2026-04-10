@@ -93,18 +93,45 @@ const DB = {
         });
     },
 
-    async saveProgress(items) {
+    // database.js の該当箇所を書き換え
+    async saveProgress(vocabulary) {
         const client = this._client();
         const { data: { user } } = await client.auth.getUser();
         if (!user) return;
 
-        const rows = items.map(item => ({
-            user_id: user.id,
-            card_id: item.id,
-            status: item.status,
-            last_reviewed: new Date().toISOString()
-        }));
+        // 最新の1件（最後に操作した単語）の進捗を計算して保存する例
+        // ※script.jsから渡される単語リストのステータスを元に計算
+        const updates = vocabulary.map(v => {
+            let interval = v.interval_days || 0;
+            let nextDate = new Date();
 
-        await client.from('progress').upsert(rows, { onConflict: 'user_id,card_id' });
+            if (v.status === 'perfect') {
+                // 間隔を広げる（例：0日→1日→3日→7日→15日...）
+                interval = interval === 0 ? 1 : Math.ceil(interval * 2.5);
+            } else if (v.status === 'review') {
+                // 復習が必要な場合は間隔を短く維持
+                interval = 1;
+            } else if (v.status === 'mastered') {
+                // 習得済みは1ヶ月以上先に飛ばす
+                interval = 30;
+            }
+
+            nextDate.setDate(nextDate.getDate() + interval);
+
+            return {
+                user_id: user.id,
+                card_id: v.id,
+                status: v.status,
+                interval_days: interval,
+                next_review_date: nextDate.toISOString(),
+                last_reviewed: new Date().toISOString()
+            };
+        });
+
+        const { error } = await client
+            .from('progress')
+            .upsert(updates, { onConflict: 'user_id, card_id' });
+
+        if (error) console.error("Progress Save Error:", error);
     }
 };
