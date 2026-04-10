@@ -1,7 +1,7 @@
 const DB = {
     key: 'C1_ANKI_DB_PRO',
     _instance: null,
-    currentDeckId: null, // 現在のデッキIDを保持
+    currentDeckId: null,
 
     _client() {
         if (this._instance) return this._instance;
@@ -16,6 +16,25 @@ const DB = {
         return null;
     },
 
+    // ユーザーが購読しているデッキ一覧を取得
+    async fetchUserDecks() {
+        const client = this._client();
+        if (!client) return [];
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) return [{ deck_id: 'FREE_SAMPLE' }];
+
+        const { data, error } = await client
+            .from('subscriptions')
+            .select('deck_id')
+            .eq('user_id', user.id);
+
+        if (error) {
+            console.error("Subscriptions fetch error:", error);
+            return [];
+        }
+        return data;
+    },
+
     async fetchAll() {
         const client = this._client();
         let user = null;
@@ -25,33 +44,26 @@ const DB = {
             user = data?.user;
         }
 
-        // URLパラメータから対象のデッキIDを取得
         const urlParams = new URLSearchParams(window.location.search);
-        this.currentDeckId = urlParams.get('deck') || 'C1_VOL1';
-        console.log("Target Deck:", this.currentDeckId);
+        this.currentDeckId = urlParams.get('deck') || 'FREE_SAMPLE';
 
         if (!user) {
-            console.log("Mode: Local");
             const raw = localStorage.getItem(this.key);
             const localData = raw ? JSON.parse(raw) : [];
             return localData.filter(item => item.deck_id === this.currentDeckId);
         }
-
-        console.log("Mode: Cloud (User:", user.email, ")");
 
         const { data: cardsData, error: cardsError } = await client
             .from('cards')
             .select('*')
             .eq('deck_id', this.currentDeckId);
 
-        if (cardsError || !cardsData) {
-            console.error("Cards fetch error:", cardsError);
-            return [];
-        }
+        if (cardsError || !cardsData) return [];
 
         const { data: progressData } = await client
             .from('progress')
-            .select(`card_id, status, last_reviewed`);
+            .select(`card_id, status, last_reviewed`)
+            .eq('user_id', user.id); // 進捗もユーザーに紐づくもののみ
 
         return cardsData.map(card => {
             const progress = progressData?.find(p => p.card_id === card.id);

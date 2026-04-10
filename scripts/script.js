@@ -15,26 +15,52 @@ let mcAnswered = false;
 
 const App = {
     async init() {
-        vocabulary = await DB.fetchAll();
+        // 1. デッキリストの読み込みとセレクトボックス生成
+        await this.initDeckSelector();
 
-        // --- 追加：デッキ名の表示 ---
-        this.renderDeckName(DB.currentDeckId);
+        // 2. 単語データの読み込み
+        vocabulary = await DB.fetchAll();
 
         this.initChart();
         this.bindEvents();
         this.render();
     },
 
-    renderDeckName(id) {
-        const el = document.getElementById('current-deck-name');
-        if (!el) return;
+    async initDeckSelector() {
+        const selector = document.getElementById('deck-select');
+        if (!selector) return;
+
+        const userDecks = await DB.fetchUserDecks();
         const nameMap = {
             'FREE_SAMPLE': '🆓 無料サンプル',
             'A1_FULL': '🇩🇪 ドイツ語 A1',
             'B1_VOL1': '🇩🇪 ドイツ語 B1',
             'C1_VOL1': '🇩🇪 ドイツ語 C1'
         };
-        el.innerText = nameMap[id] || id.replace(/_/g, ' ');
+
+        selector.innerHTML = ''; // クリア
+
+        if (userDecks.length === 0) {
+            selector.innerHTML = '<option>許可されたデッキがありません</option>';
+            return;
+        }
+
+        userDecks.forEach(d => {
+            const opt = document.createElement('option');
+            opt.value = d.deck_id;
+            opt.innerText = nameMap[d.deck_id] || d.deck_id;
+            // 現在のURLのデッキと一致していれば選択状態にする
+            const currentInUrl = new URLSearchParams(window.location.search).get('deck') || 'FREE_SAMPLE';
+            if (d.deck_id === currentInUrl) opt.selected = true;
+            selector.appendChild(opt);
+        });
+
+        // 切り替えイベント
+        selector.onchange = (e) => {
+            const newDeck = e.target.value;
+            // URLを書き換えてリロード（これにより正しいデータが再取得される）
+            window.location.href = window.location.pathname + '?deck=' + newDeck;
+        };
     },
 
     bindEvents() {
