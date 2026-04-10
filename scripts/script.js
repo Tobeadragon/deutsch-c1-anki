@@ -2,6 +2,7 @@ let vocabulary = [];
 let chartInstance = null;
 
 let quizQueue = [];
+let failedStack = []; // 間違えた問題を溜めるスタック
 let isQuizMode = false;
 let quizCorrectCount = 0;
 let quizTotalCount = 0;
@@ -84,6 +85,10 @@ const App = {
         const btnMC = document.getElementById('btn-start-mc');
         if (btnQuiz) btnQuiz.onclick = () => this.startQuiz();
         if (btnMC) btnMC.onclick = () => this.startMultipleChoice();
+
+        // 4択クイズの次へボタン
+        const btnNextMC = document.getElementById('mc-next-btn');
+        if (btnNextMC) btnNextMC.onclick = () => this.mcNext();
     },
 
     async handleMark(status) {
@@ -154,6 +159,7 @@ const App = {
         mcQueue = [...pool].sort(() => 0.5 - Math.random()).slice(0, 20);
         mcTotalCount = mcQueue.length;
         mcCorrectCount = 0;
+        failedStack = []; // 失敗スタックをリセット
         isMultipleChoiceMode = true;
         isQuizMode = false;
         document.getElementById('card-section').classList.add('hidden');
@@ -163,17 +169,26 @@ const App = {
     },
 
     renderMC() {
-        if (mcQueue.length === 0) { this.showMCResult(); return; }
+        let current;
+        if (mcQueue.length > 0) {
+            current = mcQueue[0];
+        } else if (failedStack.length > 0) {
+            current = failedStack[0];
+        } else {
+            this.showMCResult();
+            return;
+        }
+
         mcAnswered = false;
-        const current = mcQueue[0];
-        const qNum = mcTotalCount - mcQueue.length + 1;
-        const pct = Math.round(((qNum - 1) / mcTotalCount) * 100);
-        document.getElementById('mc-progress-bar').style.width = pct + '%';
-        document.getElementById('mc-progress-text').innerText = `${qNum} / ${mcTotalCount}`;
+        const qNum = mcTotalCount - mcQueue.length + (mcQueue.length === 0 ? 1 : 1);
+        // 進捗表示（簡易化）
+        document.getElementById('mc-progress-text').innerText = mcQueue.length > 0 ? `残り: ${mcQueue.length}問` : `復習中: 残り${failedStack.length}問`;
+
         document.getElementById('mc-score-text').innerText = `正解: ${mcCorrectCount}`;
         document.getElementById('mc-word').innerText = current.word;
-        document.getElementById('mc-category').innerText = current.category || '';
+        document.getElementById('mc-category').innerText = (mcQueue.length === 0 ? "【再出題】" : "") + (current.category || '');
         this.speak(current.word);
+
         const wrongs = vocabulary
             .filter(v => String(v.id) !== String(current.id))
             .sort(() => 0.5 - Math.random())
@@ -197,24 +212,40 @@ const App = {
     handleMCAnswer(selected, btn) {
         if (mcAnswered) return;
         mcAnswered = true;
-        const current = mcQueue[0];
+
+        // 現在の問題を特定
+        const current = mcQueue.length > 0 ? mcQueue[0] : failedStack[0];
         const isCorrect = String(selected.id) === String(current.id);
+
         document.querySelectorAll('.mc-choice-btn').forEach((b, i) => {
             b.disabled = true;
             if (String(mcCurrentChoices[i].id) === String(current.id)) b.classList.add('mc-correct');
             else if (b === btn && !isCorrect) b.classList.add('mc-wrong');
         });
+
         const feedback = document.getElementById('mc-feedback');
         feedback.classList.remove('hidden', 'mc-feedback-correct', 'mc-feedback-wrong');
+
         if (isCorrect) {
             mcCorrectCount++;
             feedback.classList.add('mc-feedback-correct');
-            feedback.innerHTML = `<div class="mc-feedback-icon">✓</div><div class="mc-feedback-main">正解！</div><p class="mc-feedback-example">${current.example}</p><p class="mc-feedback-example-tr">${current.example_translation}</p>`;
+            feedback.innerHTML = `<div class="mc-feedback-icon">✓</div><div class="mc-feedback-main">正解！</div>`;
             this.upgradeMCStatus(current);
+
+            // キューから削除
+            if (mcQueue.length > 0) mcQueue.shift();
+            else failedStack.shift();
         } else {
             feedback.classList.add('mc-feedback-wrong');
-            feedback.innerHTML = `<div class="mc-feedback-icon">✗</div><div class="mc-feedback-main">不正解 — 正解は「${current.translation}」</div><p class="mc-feedback-example">${current.example}</p><p class="mc-feedback-example-tr">${current.example_translation}</p>`;
-            this.speak(current.example);
+            feedback.innerHTML = `<div class="mc-feedback-icon">✗</div><div class="mc-feedback-main">不正解 — 正解は「${current.translation}」</div>`;
+
+            // ★間違えた問題を failedStack に追加（まだ入っていない場合のみ）
+            if (!failedStack.some(f => String(f.id) === String(current.id))) {
+                failedStack.push(current);
+            }
+            // 間違えたので、今のキューからは取り除き、スタックの最後に回す
+            if (mcQueue.length > 0) mcQueue.shift();
+            else failedStack.push(failedStack.shift()); // スタック内でのループ
         }
         document.getElementById('mc-next-btn').classList.remove('hidden');
     },
@@ -229,8 +260,7 @@ const App = {
     },
 
     mcNext() {
-        mcQueue.shift();
-        mcQueue.length === 0 ? this.showMCResult() : this.renderMC();
+        this.renderMC();
     },
 
     showMCResult() {
@@ -245,7 +275,7 @@ const App = {
                 <div class="mc-result-score">${mcCorrectCount} <span class="mc-result-total">/ ${mcTotalCount}</span></div>
                 <div class="mc-result-pct">${pct}%</div>
                 <div class="mc-result-msg">${msg}</div>
-                <button class="btn btn--show mc-result-btn" onclick="App.exitMC()">学習に戻る</button>
+                <button class="btn btn--show mc-result-btn" onclick="location.reload()">学習に戻る</button>
             </div>
         `;
         isMultipleChoiceMode = false;
@@ -283,22 +313,15 @@ const App = {
         document.getElementById('example-translation-display').innerText = cur.example_translation || "";
     },
 
-    // script.js の getNormalList を修正
     getNormalList() {
         const now = new Date();
-
-        // 1. 「今日が復習予定日」かつ「未習得」の単語を抽出
         const reviewList = vocabulary.filter(v => {
             const nextDate = v.next_review_date ? new Date(v.next_review_date) : new Date(0);
             return v.status !== 'mastered' && nextDate <= now;
         });
-
-        // 2. 復習対象がなければ、新しい単語（statusがnewのものなど）を混ぜる
         if (reviewList.length === 0) {
             return vocabulary.filter(v => v.status !== 'mastered').slice(0, 10);
         }
-
-        // シャッフルして返す
         return reviewList.sort(() => 0.5 - Math.random());
     },
 
