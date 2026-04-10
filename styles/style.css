@@ -537,3 +537,47 @@ textarea {
     transform: none;
     box-shadow: none;
 }
+
+/* --- スタイリッシュな「学習に戻る」ボタン --- */
+.btn-exit-admin {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(88, 86, 214, 0.1);
+    /* 薄いプライマリ色 */
+    color: var(--primary);
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(88, 86, 214, 0.2);
+}
+
+.btn-exit-admin:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(88, 86, 214, 0.3);
+}
+
+.btn-exit-admin:active {
+    transform: translateY(0);
+}
+
+.exit-icon {
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+/* モバイル対応：画面が狭いときはテキストを隠してアイコンだけにする設定（オプション） */
+@media (max-width: 400px) {
+    .exit-text {
+        display: none;
+    }
+
+    .btn-exit-admin {
+        padding: 8px 12px;
+    }
+}
