@@ -51,11 +51,19 @@
                     <div class="stat-item"><span class="dot gray"></span> 復習: <span id="stat-review">0</span></div>
                 </div>
             </div>
-            <div class="mastery-bar-wrap">
-                <div class="mastery-bar-track">
-                    <div class="mastery-bar-fill" id="mastery-bar" style="width:0%"></div>
+
+            <div class="mastery-label"
+                style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: bold; color: var(--text-sub); margin-bottom: 6px; text-transform: uppercase; margin-top: 15px;">
+                <span>デッキ全体の攻略度</span>
+                <span id="mastery-pct">0%</span>
+            </div>
+            <div class="mastery-bar-wrap" style="margin-top: 0; position: relative;">
+                <div class="mastery-bar-track"
+                    style="background: #eee; height: 8px; border-radius: 4px; overflow: hidden;">
+                    <div class="mastery-bar-fill" id="mastery-bar"
+                        style="width:0%; height: 100%; background: linear-gradient(90deg, #34c759, #2ed573); transition: width 0.5s ease;">
+                    </div>
                 </div>
-                <span class="mastery-bar-pct" id="mastery-pct">0%</span>
             </div>
         </header>
 
@@ -120,7 +128,7 @@
             </div>
             <div class="mc-choices" id="mc-choices"></div>
             <div class="mc-feedback hidden" id="mc-feedback"></div>
-            <button class="mc-next-btn hidden" id="mc-next-btn" onclick="App.mcNext()">次の問題 →</button>
+            <button class="mc-next-btn hidden" id="mc-next-btn">次の問題 →</button>
         </div>
 
         <div class="controls">
