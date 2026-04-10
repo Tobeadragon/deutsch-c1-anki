@@ -7,6 +7,7 @@
     <title>Anki Meister</title>
     <link rel="stylesheet" href="./styles/style.css">
     <link rel="stylesheet" href="./styles/quiz.css">
+    <link rel="icon" href="image/favicon/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         (function () {
@@ -34,8 +35,10 @@
             </div>
 
             <div id="deck-selector-container" style="margin-bottom: 15px;">
-                <label for="deck-select" style="font-size: 0.7rem; font-weight: bold; color: var(--text-sub); display: block; margin-bottom: 4px; text-transform: uppercase;">選択中のデッキ</label>
-                <select id="deck-select" style="width: 100%; padding: 10px; border-radius: 12px; border: 2px solid var(--primary); background: white; font-weight: bold; font-size: 0.95rem; color: var(--text-main); cursor: pointer;">
+                <label for="deck-select"
+                    style="font-size: 0.7rem; font-weight: bold; color: var(--text-sub); display: block; margin-bottom: 4px; text-transform: uppercase;">選択中のデッキ</label>
+                <select id="deck-select"
+                    style="width: 100%; padding: 10px; border-radius: 12px; border: 2px solid var(--primary); background: white; font-weight: bold; font-size: 0.95rem; color: var(--text-main); cursor: pointer;">
                     <option value="">デッキを読み込み中...</option>
                 </select>
             </div>
@@ -74,20 +77,25 @@
                         <div class="back-content">
                             <div class="item-row" style="align-items: flex-start;">
                                 <div>
-                                    <h3 id="word-display-back" style="margin:0; font-size:1.4rem; color:var(--primary);"></h3>
-                                    <small id="category-display-back" style="color:var(--text-sub); font-weight:bold;"></small>
+                                    <h3 id="word-display-back"
+                                        style="margin:0; font-size:1.4rem; color:var(--primary);"></h3>
+                                    <small id="category-display-back"
+                                        style="color:var(--text-sub); font-weight:bold;"></small>
                                 </div>
                                 <button id="speak-word-back" class="speak-btn-icon-sm">🔊 単語</button>
                             </div>
                             <hr style="margin: 10px 0; border:0; border-top:1px solid #eee;">
                             <div class="item-row"><strong>Bedeutung:</strong></div>
-                            <p id="translation-display" style="font-size: 1.1rem; margin: 5px 0 15px 0; font-weight:bold;"></p>
+                            <p id="translation-display"
+                                style="font-size: 1.1rem; margin: 5px 0 15px 0; font-weight:bold;"></p>
                             <div class="item-row">
                                 <strong>Beispiel:</strong>
                                 <button id="speak-example-back" class="speak-btn-icon-sm">🔊 例文</button>
                             </div>
-                            <p id="example-display" style="font-style: italic; color: #333; margin: 5px 0; font-size:0.95rem;"></p>
-                            <p style="margin:0;"><small id="example-translation-display" style="color: #666;"></small></p>
+                            <p id="example-display"
+                                style="font-style: italic; color: #333; margin: 5px 0; font-size:0.95rem;"></p>
+                            <p style="margin:0;"><small id="example-translation-display" style="color: #666;"></small>
+                            </p>
                         </div>
                         <div class="tap-hint" style="bottom: 15px;">Tap to return</div>
                     </div>
@@ -133,4 +141,5 @@
     <script src="./scripts/database.js"></script>
     <script src="./scripts/script.js"></script>
 </body>
+
 </html>
