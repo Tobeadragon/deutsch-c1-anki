@@ -16,54 +16,49 @@ const DB = {
         return null;
     },
 
-    // ユーザーが購読しているデッキ一覧を取得
+    // ユーザーが購読しているデッキ + マイ辞書を取得
     async fetchUserDecks() {
         const client = this._client();
-        if (!client) return [];
+        if (!client) return [{ deck_id: 'FREE_SAMPLE' }];
+
         const { data: { user } } = await client.auth.getUser();
-        if (!user) return [{ deck_id: 'FREE_SAMPLE' }];
 
-        const { data, error } = await client
-            .from('subscriptions')
-            .select('deck_id')
-            .eq('user_id', user.id);
-
-        if (error) {
-            console.error("Subscriptions fetch error:", error);
-            return [];
+        let decks = [];
+        if (user) {
+            const { data } = await client.from('subscriptions').select('deck_id').eq('user_id', user.id);
+            decks = data || [];
+            // ログイン中なら必ず「マイ辞書」を選択肢に加える
+            decks.push({ deck_id: 'User_Deck' });
+        } else {
+            decks.push({ deck_id: 'FREE_SAMPLE' });
         }
-        return data;
+
+        // 重複削除
+        return Array.from(new Set(decks.map(d => d.deck_id))).map(id => ({ deck_id: id }));
     },
 
     async fetchAll() {
         const client = this._client();
-        let user = null;
-
-        if (client) {
-            const { data } = await client.auth.getUser();
-            user = data?.user;
-        }
+        const { data: { user } } = await client.auth.getUser();
 
         const urlParams = new URLSearchParams(window.location.search);
         this.currentDeckId = urlParams.get('deck') || 'FREE_SAMPLE';
 
-        if (!user) {
-            const raw = localStorage.getItem(this.key);
-            const localData = raw ? JSON.parse(raw) : [];
-            return localData.filter(item => item.deck_id === this.currentDeckId);
+        // 1. カードマスタの取得 (公式 or 自分の作成したもの)
+        let query = client.from('cards').select('*').eq('deck_id', this.currentDeckId);
+
+        // User_Deckの場合は自分のデータのみ、それ以外は公式データ(created_by is null)を取得
+        if (this.currentDeckId === 'User_Deck') {
+            query = query.eq('created_by', user.id);
+        } else {
+            query = query.is('created_by', null);
         }
 
-        const { data: cardsData, error: cardsError } = await client
-            .from('cards')
-            .select('*')
-            .eq('deck_id', this.currentDeckId);
-
+        const { data: cardsData, error: cardsError } = await query;
         if (cardsError || !cardsData) return [];
 
-        const { data: progressData } = await client
-            .from('progress')
-            .select(`card_id, status, last_reviewed`)
-            .eq('user_id', user.id); // 進捗もユーザーに紐づくもののみ
+        // 2. 進捗の取得
+        const { data: progressData } = await client.from('progress').select(`card_id, status, last_reviewed`).eq('user_id', user.id);
 
         return cardsData.map(card => {
             const progress = progressData?.find(p => p.card_id === card.id);
@@ -81,24 +76,18 @@ const DB = {
         });
     },
 
-    async save(items) {
-        localStorage.setItem(this.key, JSON.stringify(items));
+    async saveProgress(items) {
         const client = this._client();
-        if (client) {
-            const { data: { user } } = await client.auth.getUser();
-            if (user) {
-                const rows = items.map(item => ({
-                    user_id: user.id,
-                    card_id: item.id,
-                    status: item.status,
-                    last_reviewed: item.lastReviewed || new Date().toISOString()
-                }));
-                const { error } = await client
-                    .from('progress')
-                    .upsert(rows, { onConflict: 'user_id,card_id' });
-                if (error) console.error("Cloud save failed:", error);
-            }
-        }
-        return true;
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) return;
+
+        const rows = items.map(item => ({
+            user_id: user.id,
+            card_id: item.id,
+            status: item.status,
+            last_reviewed: new Date().toISOString()
+        }));
+
+        await client.from('progress').upsert(rows, { onConflict: 'user_id,card_id' });
     }
 };

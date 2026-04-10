@@ -472,3 +472,68 @@ textarea {
     font-size: 0.75rem;
     font-weight: bold;
 }
+
+/* --- ページネーション・モダンデザイン --- */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin: 30px 0;
+    padding: 10px;
+}
+
+#page-info {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+    background: #fff;
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid #e5e5ea;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.03);
+    min-width: 50px;
+    text-align: center;
+}
+
+#prev-page,
+#next-page {
+    background: #fff;
+    border: 1px solid #e5e5ea;
+    color: var(--primary);
+    padding: 10px 18px;
+    border-radius: 14px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+#prev-page:hover,
+#next-page:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    transform: translateY(-1px);
+}
+
+#prev-page:active,
+#next-page:active {
+    transform: translateY(0);
+    opacity: 0.8;
+}
+
+/* 無効化（最初のページ/最後のページ）のスタイル */
+#prev-page:disabled,
+#next-page:disabled {
+    background: #f2f2f7;
+    color: #c7c7cc;
+    border-color: #e5e5ea;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}

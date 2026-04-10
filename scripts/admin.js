@@ -1,38 +1,66 @@
 let vocabulary = [];
 let filteredList = [];
 let currentPage = 1;
-const itemsPerPage = 20;
+const itemsPerPage = 15;
 
 const Admin = {
     async init() {
-        vocabulary = await DB.fetchAll();
-        this.applyFilter();
+        const client = DB._client();
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) {
+            window.location.href = 'login.html';
+            return;
+        }
+        await this.loadData();
         this.bindEvents();
+    },
+
+    async loadData() {
+        const client = DB._client();
+        const { data: { user } } = await client.auth.getUser();
+
+        const { data, error } = await client
+            .from('cards')
+            .select('*')
+            .eq('deck_id', 'User_Deck')
+            .eq('created_by', user.id)
+            .order('id', { ascending: false });
+
+        if (!error) {
+            vocabulary = data;
+            this.applyFilter();
+        }
     },
 
     bindEvents() {
         document.getElementById('btn-save').onclick = () => this.saveWord();
         document.getElementById('btn-cancel').onclick = () => this.clearForm();
-        document.getElementById('btn-export').onclick = () => this.exportToJson();
-        document.getElementById('input-import').onchange = (e) => this.importFromJson(e);
-        document.getElementById('search-input').oninput = () => { currentPage = 1; this.applyFilter(); };
-        document.getElementById('filter-category').onchange = () => { currentPage = 1; this.applyFilter(); };
-        document.getElementById('filter-status').onchange = () => { currentPage = 1; this.applyFilter(); };
-        document.getElementById('prev-page').onclick = () => { if (currentPage > 1) { currentPage--; this.renderList(); } };
-        document.getElementById('next-page').onclick = () => { if (currentPage < this.totalPages()) { currentPage++; this.renderList(); } };
+        document.getElementById('search-input').oninput = () => {
+            currentPage = 1;
+            this.applyFilter();
+        };
+        document.getElementById('prev-page').onclick = () => { 
+            if (currentPage > 1) { 
+                currentPage--; 
+                this.renderList(); 
+                window.scrollTo({ top: document.querySelector('.admin-controls').offsetTop, behavior: 'smooth' });
+            } 
+        };
+        document.getElementById('next-page').onclick = () => { 
+            if (currentPage < this.totalPages()) { 
+                currentPage++; 
+                this.renderList(); 
+                window.scrollTo({ top: document.querySelector('.admin-controls').offsetTop, behavior: 'smooth' });
+            } 
+        };
     },
 
     applyFilter() {
         const search = (document.getElementById('search-input').value || "").toLowerCase();
-        const cat = document.getElementById('filter-category').value;
-        const stat = document.getElementById('filter-status').value;
-
-        filteredList = vocabulary.filter(v => {
-            const mSearch = v.word.toLowerCase().includes(search) || v.translation.toLowerCase().includes(search);
-            const mCat = (cat === 'all' || v.category === cat);
-            const mStat = (stat === 'all' || v.status === stat);
-            return mSearch && mCat && mStat;
-        });
+        filteredList = vocabulary.filter(v => 
+            (v.word || "").toLowerCase().includes(search) || 
+            (v.translation || "").toLowerCase().includes(search)
+        );
         this.renderList();
     },
 
@@ -41,58 +69,74 @@ const Admin = {
     renderList() {
         const body = document.getElementById('vocab-list-body');
         const pageItems = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+        
+        // UI更新: ページ情報とボタンの活性状態
         document.getElementById('page-info').innerText = `${currentPage} / ${this.totalPages()}`;
+        document.getElementById('prev-page').disabled = (currentPage === 1);
+        document.getElementById('next-page').disabled = (currentPage === this.totalPages() || this.totalPages() === 0);
+
+        if (filteredList.length === 0) {
+            body.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:40px; color:var(--text-sub);">単語が見つかりません</td></tr>';
+            return;
+        }
 
         body.innerHTML = pageItems.map(v => `
             <tr>
-                <td><strong>${v.word}</strong><br><small>${v.category}</small></td>
                 <td>
-                    <select class="status-select-sm" onchange="Admin.updateStatus('${v.id}', this.value)">
-                        <option value="new" ${v.status === 'new' ? 'selected' : ''}>新規</option>
-                        <option value="review" ${v.status === 'review' ? 'selected' : ''}>復習</option>
-                        <option value="perfect" ${v.status === 'perfect' ? 'selected' : ''}>学習</option>
-                        <option value="mastered" ${v.status === 'mastered' ? 'selected' : ''}>習得</option>
-                    </select>
+                    <div style="font-weight:bold; color:var(--primary); font-size:1.05rem;">${v.word}</div>
+                    <div style="font-size:0.85rem; color:var(--text-sub); margin-top:2px;">${v.translation}</div>
                 </td>
-                <td>
-                    <button class="btn-edit-sm" onclick="Admin.editItem('${v.id}')">✏️</button>
-                    <button class="btn-edit-sm" onclick="Admin.deleteItem('${v.id}')">🗑️</button>
+                <td style="text-align:right;">
+                    <button class="btn-edit-sm" onclick="Admin.editItem(${v.id})">✏️</button>
+                    <button class="btn-edit-sm" onclick="Admin.deleteItem(${v.id})" style="color:var(--danger)">🗑️</button>
                 </td>
             </tr>
         `).join('');
     },
 
-    async updateStatus(id, newStat) {
-        const idx = vocabulary.findIndex(v => String(v.id) === String(id));
-        if (idx > -1) {
-            vocabulary[idx].status = newStat;
-            await DB.save(vocabulary);
-            this.applyFilter();
-        }
-    },
-
     async saveWord() {
-        const id = document.getElementById('edit-id').value;
+        const client = DB._client();
+        const { data: { user } } = await client.auth.getUser();
+        const idField = document.getElementById('edit-id').value;
         const word = document.getElementById('input-word').value.trim();
-        if (!word) return;
-        const idx = vocabulary.findIndex(v => String(v.id) === String(id));
-        const data = {
-            id: id || Date.now().toString(),
-            word,
+        
+        if (!word) return alert("単語を入力してください");
+
+        let finalId = idField ? parseInt(idField) : await this.getNextId();
+
+        const payload = {
+            id: finalId,
+            word: word,
             category: document.getElementById('input-category').value,
             translation: document.getElementById('input-translation').value,
             example: document.getElementById('input-example').value,
             example_translation: document.getElementById('input-example-translation').value,
-            status: idx > -1 ? vocabulary[idx].status : 'new',
-            lastReviewed: new Date().toISOString()
+            deck_id: 'User_Deck',
+            created_by: user.id
         };
-        if (idx > -1) vocabulary[idx] = data; else vocabulary.push(data);
-        await DB.save(vocabulary);
-        this.clearForm(); this.applyFilter();
+
+        const { error } = await client.from('cards').upsert(payload);
+        if (error) {
+            alert("エラー: " + error.message);
+        } else {
+            this.clearForm();
+            await this.loadData();
+        }
+    },
+
+    async getNextId() {
+        const client = DB._client();
+        const { data } = await client
+            .from('cards')
+            .select('id')
+            .gte('id', 90000)
+            .order('id', { ascending: false })
+            .limit(1);
+        return (data && data.length > 0) ? data[0].id + 1 : 90000;
     },
 
     editItem(id) {
-        const v = vocabulary.find(item => String(item.id) === String(id));
+        const v = vocabulary.find(item => item.id === id);
         if (!v) return;
         document.getElementById('edit-id').value = v.id;
         document.getElementById('input-word').value = v.word;
@@ -100,40 +144,28 @@ const Admin = {
         document.getElementById('input-translation').value = v.translation;
         document.getElementById('input-example').value = v.example;
         document.getElementById('input-example-translation').value = v.example_translation;
-        document.getElementById('btn-save').innerText = "修正保存";
+        
+        document.getElementById('form-title').innerText = "単語を編集 (ID:" + v.id + ")";
+        document.getElementById('btn-save').innerText = "更新する";
         document.getElementById('btn-cancel').classList.remove('hidden');
-        window.scrollTo(0, 0);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
     async deleteItem(id) {
-        if (!confirm("削除しますか？")) return;
-        vocabulary = vocabulary.filter(v => String(v.id) !== String(id));
-        await DB.save(vocabulary); this.applyFilter();
+        if (!confirm("この単語をマイ辞書から完全に削除しますか？")) return;
+        const client = DB._client();
+        const { error } = await client.from('cards').delete().eq('id', id);
+        if (error) alert("削除失敗");
+        else await this.loadData();
     },
 
     clearForm() {
         document.getElementById('edit-id').value = "";
-        document.querySelectorAll('input, textarea').forEach(i => { if (i.id !== 'search-input') i.value = ""; });
-        document.getElementById('btn-save').innerText = "保存";
+        document.querySelectorAll('.admin-card input, .admin-card textarea').forEach(el => el.value = "");
+        document.getElementById('form-title').innerText = "新規単語を追加";
+        document.getElementById('btn-save').innerText = "保存する";
         document.getElementById('btn-cancel').classList.add('hidden');
-    },
-
-    exportToJson() {
-        const blob = new Blob([JSON.stringify(vocabulary, null, 2)], { type: 'application/json' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-        a.download = "c1_anki_export.json"; a.click();
-    },
-
-    async importFromJson(e) {
-        const file = e.target.files[0];
-        const reader = new FileReader();
-        reader.onload = async (ev) => {
-            let data = JSON.parse(ev.target.result);
-            if (Array.isArray(data[0])) data = data[0];
-            vocabulary = data; await DB.save(vocabulary);
-            this.applyFilter(); alert("完了");
-        };
-        reader.readAsText(file);
     }
 };
+
 Admin.init();
