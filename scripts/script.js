@@ -35,10 +35,11 @@ const App = {
             'FREE_SAMPLE': '🆓 無料サンプル',
             'A1_FULL': '🇩🇪 ドイツ語 A1',
             'B1_VOL1': '🇩🇪 ドイツ語 B1',
-            'C1_VOL1': '🇩🇪 ドイツ語 C1'
+            'C1_VOL1': '🇩🇪 ドイツ語 C1',
+            'User_Deck': '⭐ マイ辞書 (自分専用)'
         };
 
-        selector.innerHTML = ''; // クリア
+        selector.innerHTML = '';
 
         if (userDecks.length === 0) {
             selector.innerHTML = '<option>許可されたデッキがありません</option>';
@@ -48,17 +49,15 @@ const App = {
         userDecks.forEach(d => {
             const opt = document.createElement('option');
             opt.value = d.deck_id;
-            opt.innerText = nameMap[d.deck_id] || d.deck_id;
-            // 現在のURLのデッキと一致していれば選択状態にする
+            opt.innerText = nameMap[d.deck_id] || d.deck_id.replace(/_/g, ' ');
+
             const currentInUrl = new URLSearchParams(window.location.search).get('deck') || 'FREE_SAMPLE';
             if (d.deck_id === currentInUrl) opt.selected = true;
             selector.appendChild(opt);
         });
 
-        // 切り替えイベント
         selector.onchange = (e) => {
             const newDeck = e.target.value;
-            // URLを書き換えてリロード（これにより正しいデータが再取得される）
             window.location.href = window.location.pathname + '?deck=' + newDeck;
         };
     },
@@ -95,7 +94,7 @@ const App = {
             const idx = vocabulary.findIndex(v => String(v.id) === String(currentItem.id));
             vocabulary[idx].status = status;
             vocabulary[idx].lastReviewed = new Date().toISOString();
-            await DB.save(vocabulary);
+            await DB.saveProgress(vocabulary);
         }
         if (isQuizMode && quizQueue.length === 0) {
             setTimeout(() => this.showQuizResult(), 400);
@@ -226,7 +225,7 @@ const App = {
         const map = { new: 'review', review: 'perfect', perfect: 'mastered', mastered: 'mastered' };
         vocabulary[idx].status = map[vocabulary[idx].status] || 'review';
         vocabulary[idx].lastReviewed = new Date().toISOString();
-        await DB.save(vocabulary);
+        await DB.saveProgress(vocabulary);
     },
 
     mcNext() {
@@ -312,6 +311,7 @@ const App = {
 
     initChart() {
         const ctx = document.getElementById('progressChart').getContext('2d');
+        if (!ctx) return;
         chartInstance = new Chart(ctx, {
             type: 'doughnut',
             data: { datasets: [{ data: [0, 0, 1], backgroundColor: ['#007aff', '#34c759', '#d1d1d6'], borderWidth: 0 }] },
