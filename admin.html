@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>マイ辞書管理 - Anki Meister</title>
+    <link rel="icon" href="image/favicon/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="./styles/style.css">
     <link rel="stylesheet" href="./styles/admin.css">
 </head>
@@ -50,6 +51,26 @@
                 <button id="btn-save" class="btn btn--primary">保存する</button>
                 <button id="btn-cancel" class="btn btn--secondary hidden">キャンセル</button>
             </div>
+        </div>
+        <div class="admin-card import-section">
+            <h3>一括インポート (CSV)</h3>
+            <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 15px;">
+                形式: 単語, カテゴリー, 翻訳, 例文, 例文訳 (ヘッダーなし)
+            </p>
+
+            <div class="file-upload-wrapper">
+                <input type="file" id="csv-file" accept=".csv" hidden>
+                <label for="csv-file" class="btn btn--secondary file-label">
+                    <span class="icon">📁</span> ファイルを選択
+                </label>
+                <span id="file-name-display"
+                    style="margin-left: 10px; font-size: 0.85rem; color: var(--text-sub);">選択されていません</span>
+            </div>
+
+            <div class="btn-row" style="margin-top: 20px;">
+                <button id="btn-import" class="btn btn--primary">インポートを実行</button>
+            </div>
+            <div id="import-status" style="margin-top:10px; font-size:0.85rem; font-weight: bold;"></div>
         </div>
 
         <div class="admin-controls">

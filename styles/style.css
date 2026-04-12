@@ -581,3 +581,19 @@ textarea {
         padding: 8px 12px;
     }
 }
+
+/* admin.css に追加 */
+.import-section {
+    margin-top: 20px;
+    background-color: #f9f9f9;
+    /* 少し色を変えて区別 */
+    border: 1px dashed #ccc;
+}
+
+#csv-file {
+    width: 100%;
+    padding: 10px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+}
