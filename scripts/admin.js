@@ -33,32 +33,47 @@ const Admin = {
     },
 
     bindEvents() {
+        // 保存ボタン
         document.getElementById('btn-save').onclick = () => this.saveWord();
+
+        // キャンセルボタン
         document.getElementById('btn-cancel').onclick = () => this.clearForm();
+
+        // CSVインポートボタン (追加)
+        const btnImport = document.getElementById('btn-import');
+        if (btnImport) {
+            btnImport.onclick = () => this.importCSV();
+        }
+
+        // 検索入力
         document.getElementById('search-input').oninput = () => {
             currentPage = 1;
             this.applyFilter();
         };
-        document.getElementById('prev-page').onclick = () => { 
-            if (currentPage > 1) { 
-                currentPage--; 
-                this.renderList(); 
+
+        // ページネーション: 前へ
+        document.getElementById('prev-page').onclick = () => {
+            if (currentPage > 1) {
+                currentPage--;
+                this.renderList();
                 window.scrollTo({ top: document.querySelector('.admin-controls').offsetTop, behavior: 'smooth' });
-            } 
+            }
         };
-        document.getElementById('next-page').onclick = () => { 
-            if (currentPage < this.totalPages()) { 
-                currentPage++; 
-                this.renderList(); 
+
+        // ページネーション: 次へ
+        document.getElementById('next-page').onclick = () => {
+            if (currentPage < this.totalPages()) {
+                currentPage++;
+                this.renderList();
                 window.scrollTo({ top: document.querySelector('.admin-controls').offsetTop, behavior: 'smooth' });
-            } 
+            }
         };
     },
 
     applyFilter() {
         const search = (document.getElementById('search-input').value || "").toLowerCase();
-        filteredList = vocabulary.filter(v => 
-            (v.word || "").toLowerCase().includes(search) || 
+        filteredList = vocabulary.filter(v =>
+            (v.word || "").toLowerCase().includes(search) ||
             (v.translation || "").toLowerCase().includes(search)
         );
         this.renderList();
@@ -69,7 +84,7 @@ const Admin = {
     renderList() {
         const body = document.getElementById('vocab-list-body');
         const pageItems = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-        
+
         // UI更新: ページ情報とボタンの活性状態
         document.getElementById('page-info').innerText = `${currentPage} / ${this.totalPages()}`;
         document.getElementById('prev-page').disabled = (currentPage === 1);
@@ -99,7 +114,7 @@ const Admin = {
         const { data: { user } } = await client.auth.getUser();
         const idField = document.getElementById('edit-id').value;
         const word = document.getElementById('input-word').value.trim();
-        
+
         if (!word) return alert("単語を入力してください");
 
         let finalId = idField ? parseInt(idField) : await this.getNextId();
@@ -144,7 +159,7 @@ const Admin = {
         document.getElementById('input-translation').value = v.translation;
         document.getElementById('input-example').value = v.example;
         document.getElementById('input-example-translation').value = v.example_translation;
-        
+
         document.getElementById('form-title').innerText = "単語を編集 (ID:" + v.id + ")";
         document.getElementById('btn-save').innerText = "更新する";
         document.getElementById('btn-cancel').classList.remove('hidden');
