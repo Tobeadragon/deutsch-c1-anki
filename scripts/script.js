@@ -316,17 +316,30 @@ const App = {
     speak(t) {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(t);
+
+        // 言語設定
         u.lang = 'de-DE';
 
-        const voices = window.speechSynthesis.getVoices();
-        // 自然な声を優先的に検索
-        const bestVoice = voices.find(v => v.lang === 'de-DE' && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural')))
-            || voices.find(v => v.lang === 'de-DE');
+        // 音声リストの取得
+        let voices = window.speechSynthesis.getVoices();
 
-        if (bestVoice) u.voice = bestVoice;
+        // Android/iOS/PC すべてで「自然な声」を探すための優先順位
+        const bestVoice = voices.find(v =>
+            v.lang.startsWith('de') && (
+                v.name.includes('Google') ||   // Android / Chrome
+                v.name.includes('Natural') ||  // Windows / Edge
+                v.name.includes('Premium') ||  // iOS 高品質
+                v.name.includes('Siri') ||     // iOS Siri
+                v.name.includes('Improved')    // Android 高品質
+            )
+        ) || voices.find(v => v.lang.startsWith('de'));
 
-        // 速度を0.88に落として自然なイントネーションに
-        u.rate = 0.88;
+        if (bestVoice) {
+            u.voice = bestVoice;
+            console.log("使用中の音声:", bestVoice.name); // デバッグ用
+        }
+
+        u.rate = 0.88; // Androidでもこの速度が最も自然に聞こえます
         u.pitch = 1.0;
 
         window.speechSynthesis.speak(u);
