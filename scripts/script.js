@@ -1,3 +1,8 @@
+// ブラウザに音声リストを準備させるための設定
+window.speechSynthesis.onvoiceschanged = () => {
+    window.speechSynthesis.getVoices();
+};
+
 let vocabulary = [];
 let chartInstance = null;
 
@@ -76,7 +81,6 @@ const App = {
         if (btnQuiz) btnQuiz.onclick = () => this.startQuiz();
         if (btnMC) btnMC.onclick = () => this.startMultipleChoice();
 
-        // クイズ次へボタンのイベント紐付け
         const btnNextMC = document.getElementById('mc-next-btn');
         if (btnNextMC) btnNextMC.onclick = () => this.mcNext();
     },
@@ -142,7 +146,6 @@ const App = {
     startMultipleChoice() {
         const pool = vocabulary.filter(v => v.status !== 'mastered');
         if (pool.length < 4) return alert("4択には最低4単語が必要です。");
-        // 「要復習(review)」を優先的に抽出
         mcQueue = [...pool].sort((a, b) => {
             if (a.status === 'review' && b.status !== 'review') return -1;
             if (a.status !== 'review' && b.status === 'review') return 1;
@@ -163,8 +166,6 @@ const App = {
         mcAnswered = false;
         const current = mcQueue[0];
         const qNum = mcTotalCount - mcQueue.length + 1;
-
-        // 修正：クイズ進捗バーの計算（今何問目か）
         const pct = Math.round(((qNum - 1) / mcTotalCount) * 100);
         const mcBar = document.getElementById('mc-progress-bar');
         if (mcBar) mcBar.style.width = pct + '%';
@@ -316,6 +317,18 @@ const App = {
         window.speechSynthesis.cancel();
         const u = new SpeechSynthesisUtterance(t);
         u.lang = 'de-DE';
+
+        const voices = window.speechSynthesis.getVoices();
+        // 自然な声を優先的に検索
+        const bestVoice = voices.find(v => v.lang === 'de-DE' && (v.name.includes('Google') || v.name.includes('Premium') || v.name.includes('Natural')))
+            || voices.find(v => v.lang === 'de-DE');
+
+        if (bestVoice) u.voice = bestVoice;
+
+        // 速度を0.88に落として自然なイントネーションに
+        u.rate = 0.88;
+        u.pitch = 1.0;
+
         window.speechSynthesis.speak(u);
     }
 };
