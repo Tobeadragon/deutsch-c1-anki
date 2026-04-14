@@ -142,8 +142,20 @@
             <div class="input-stack">
                 <div class="input-group"><label>単語 (独)</label><input type="text" id="input-word" class="form-control">
                 </div>
-                <div class="input-group"><label>カテゴリー</label><input type="text" id="input-category"
-                        class="form-control"></div>
+                <div class="input-group"><label>カテゴリー</label><select type="text" id="input-category"
+                        class="form-control">
+                        <option value="">品詞を選択...</option>
+                        <option value="Nomen">名詞 Nomen</option>
+                        <option value="Verb">動詞 Verb</option>
+                        <option value="Adjektiv">形容詞 Adjektiv</option>
+                        <option value="Adverb">副詞 Adverv</option>
+                        <option value="Präposition">前置詞 Präposition</option>
+                        <option value="Modalverb">助動詞 odalverb</option>
+                        <option value="Konjunction">接続詞 Konjunction</option>
+                        <option value="Pronomen">代名詞 Pronomen</option>
+                    </select>
+
+                </div>
                 <div class="input-group"><label>翻訳 (日)</label><input type="text" id="input-translation"
                         class="form-control"></div>
                 <div class="input-group"><label>例文 (独)</label><textarea id="input-example"
