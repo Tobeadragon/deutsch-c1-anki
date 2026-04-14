@@ -171,6 +171,69 @@
 
         <div class="import-section">
             <h3>一括インポート (CSV)</h3>
+            <div class="import-guide"
+                style="margin-bottom: 15px; background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee; font-size: 0.85rem;">
+                <h4 style="margin-top: 0; color: #333; font-size: 0.9rem;">CSVファイル作成ガイド</h4>
+                <p style="margin-bottom: 8px; color: #666;">以下の順番で列を作成し、<strong>UTF-8</strong>形式で保存してください。</p>
+
+                <table style="width: 100%; border-collapse: collapse; background: white; margin-bottom: 10px;">
+                    <thead>
+                        <tr style="background: #f0f0f0; text-align: left;">
+                            <th style="padding: 5px; border: 1px solid #ddd;">列</th>
+                            <th style="padding: 5px; border: 1px solid #ddd;">項目名</th>
+                            <th style="padding: 5px; border: 1px solid #ddd;">内容例</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="padding: 5px; border: 1px solid #ddd;">1</td>
+                            <td style="padding: 5px; border: 1px solid #ddd;">単語</td>
+                            <td style="padding: 5px; border: 1px solid #ddd;">Apfel</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px; border: 1px solid #ddd;">2</td>
+                            <td style="padding: 5px; border: 1px solid #ddd;">カテゴリー</td>
+                            <td style="padding: 5px; border: 1px solid #ddd;">名詞</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px; border: 1px solid #ddd;">3</td>
+                            <td style="padding: 5px; border: 1px solid #ddd;">意味</td>
+                            <td style="padding: 5px; border: 1px solid #ddd;">りんご</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px; border: 1px solid #ddd;">4</td>
+                            <td style="padding: 5px; border: 1px solid #ddd;">例文</td>
+                            <td style="padding: 5px; border: 1px solid #ddd;">Ich esse einen Apfel.</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 5px; border: 1px solid #ddd;">5</td>
+                            <td style="padding: 5px; border: 1px solid #ddd;">例文訳</td>
+                            <td style="padding: 5px; border: 1px solid #ddd;">私はりんごを食べます。</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <ul style="padding-left: 20px; color: #d9534f; margin: 0;">
+                    <li>ヘッダー（1行目の項目名）は含めないでください。</li>
+                    <li>カテゴリーはドロップダウンの選択肢と一致させてください。</li>
+                    <li>Excelで作成する場合、保存時に「CSV UTF-8 (コンマ区切り)」を選んでください。</li>
+                </ul>
+            </div>
+            <div class="sample-download-container" style="margin-bottom: 20px;">
+                <button id="btn-download-sample" onclick="Admin.downloadSampleCSV()"
+                    style="display: inline-flex; align-items: center; justify-content: center; background-color: #ffffff; color: #1d6f42; border: 1px solid #1d6f42; padding: 10px 18px; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: background-color 0.2s, color 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-family: sans-serif;"
+                    onmouseover="this.style.backgroundColor='#1d6f42'; this.style.color='#ffffff';"
+                    onmouseout="this.style.backgroundColor='#ffffff'; this.style.color='#1d6f42';">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                        viewBox="0 0 16 16" style="margin-right: 8px; flex-shrink: 0;">
+                        <path
+                            d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                        <path
+                            d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z" />
+                    </svg>
+                    サンプルCSVをダウンロード (.csv)
+                </button>
+            </div>
             <div class="file-upload-wrapper">
                 <input type="file" id="csv-file" accept=".csv" hidden>
                 <label for="csv-file" class="btn btn--secondary" style="cursor:pointer; padding: 10px 15px;">📁
@@ -178,6 +241,7 @@
                 <span id="file-name-display" style="font-size:0.8rem; color:var(--text-sub);">未選択</span>
             </div>
             <button id="btn-import" class="btn btn--primary" style="width: 100%;">インポート実行</button>
+
             <div id="import-status" style="margin-top:10px; font-size:0.8rem; font-weight:bold;"></div>
         </div>
 

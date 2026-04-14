@@ -228,6 +228,19 @@ const Admin = {
         reader.readAsText(file);
     },
 
+    // importCSV() のすぐ後ろあたりに追加
+    downloadSampleCSV() {
+        // Excelでも文字化けしないよう BOM (0xEF, 0xBB, 0xBF) を追加
+        const csvContent = "Apfel,名詞,りんご,Ich esse einen Apfel.,私はりんごを食べます。";
+        const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
+        const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
+
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "sample_deck.csv";
+        link.click();
+    },
+
     applyFilter() {
         const s = (document.getElementById('search-input').value || "").toLowerCase();
         filteredList = vocabulary.filter(v =>
@@ -292,4 +305,6 @@ const Admin = {
     }
 };
 
+
 Admin.init();
+
