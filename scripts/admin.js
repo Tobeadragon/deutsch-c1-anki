@@ -231,7 +231,7 @@ const Admin = {
     // importCSV() のすぐ後ろあたりに追加
     downloadSampleCSV() {
         // Excelでも文字化けしないよう BOM (0xEF, 0xBB, 0xBF) を追加
-        const csvContent = "Apfel,名詞,りんご,Ich esse einen Apfel.,私はりんごを食べます。";
+        const csvContent = "Apfel,Nomen,りんご,Ich esse einen Apfel.,私はりんごを食べます。";
         const bom = new Uint8Array([0xEF, 0xBB, 0xBF]);
         const blob = new Blob([bom, csvContent], { type: 'text/csv;charset=utf-8;' });
 
