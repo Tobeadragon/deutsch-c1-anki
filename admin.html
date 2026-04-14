@@ -4,96 +4,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>マイ辞書管理 - Anki Meister</title>
+    <title>辞書エディタ - Anki Meister</title>
     <link rel="icon" href="image/favicon/favicon.ico" type="image/x-icon">
     <link rel="stylesheet" href="./styles/style.css">
-    <link rel="stylesheet" href="./styles/admin.css">
+    <style>
+        /* 管理画面専用の追加スタイル（学習画面には影響しません） */
+        .btn-exit-admin-modern {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background-color: #E8EAF6;
+            color: #5856d6;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            border: 1px solid rgba(88, 86, 214, 0.1);
+            white-space: nowrap;
+        }
+
+        @media (max-width: 400px) {
+            .exit-text {
+                display: none;
+            }
+
+            .btn-exit-admin-modern {
+                padding: 8px 12px;
+            }
+        }
+
+        .admin-special-card {
+            border: 1.5px solid #5856d6 !important;
+            background-color: #F0F2FF !important;
+        }
+
+        .admin-purple-text {
+            color: #5856d6 !important;
+            font-weight: bold;
+        }
+
+        .admin-select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #5856d6;
+            font-weight: bold;
+            font-family: inherit;
+            margin-top: 10px;
+        }
+
+        .input-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: var(--text-sub);
+            margin-bottom: 5px;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #e5e5ea;
+            background: #f9f9fb;
+            font-size: 1rem;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+
+        .import-section {
+            border: 2px dashed #e5e5ea;
+            background: #fafafa;
+            padding: 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+        }
+
+        .file-upload-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .vocab-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .vocab-table td {
+            padding: 12px 5px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+    </style>
 </head>
 
 <body>
     <div class="app-container">
         <header class="main-header">
             <div class="header-top">
-                <h1>⭐ マイ辞書エディタ</h1>
-                <a href="index.html" class="btn-exit-admin">
+                <h1>⭐ 辞書エディタ</h1>
+                <a href="index.html" class="btn-exit-admin-modern">
                     <span class="exit-icon">✕</span>
                     <span class="exit-text">学習に戻る</span>
                 </a>
             </div>
         </header>
 
+        <div id="admin-deck-control" class="admin-card admin-special-card" style="display: none;">
+            <h3 class="admin-purple-text">編集対象のデッキ</h3>
+            <span
+                style="font-size: 0.7rem; color: #5856d6; background: rgba(88, 86, 214, 0.1); padding: 2px 8px; border-radius: 20px; font-weight: bold;">
+                管理者としてログイン中
+            </span>
+            <select id="admin-deck-select" class="admin-select">
+                <option value="FREE_SAMPLE">🆓 無料サンプル</option>
+                <option value="A1_FULL">🇩🇪 ドイツ語 A1 (完全版)</option>
+                <option value="B1_VOL1">🇩🇪 ドイツ語 B1 (Vol.1)</option>
+                <option value="B1_VOL2">🇩🇪 ドイツ語 B1 (Vol.2)</option>
+                <option value="B2_VOL1">🇩🇪 ドイツ語 B2 (Vol.1)</option>
+                <option value="C1_VOL1">🇩🇪 ドイツ語 C1 (Vol.1)</option>
+                <option value="User_Deck">⭐ マイ辞書 (ユーザー専用)</option>
+            </select>
+        </div>
+
         <div class="admin-card">
             <h3 id="form-title">新規単語を追加</h3>
             <input type="hidden" id="edit-id">
             <div class="input-stack">
-                <div class="input-group">
-                    <label>単語 (ドイツ語)</label>
-                    <input type="text" id="input-word" placeholder="例: das Haus">
+                <div class="input-group"><label>単語 (独)</label><input type="text" id="input-word" class="form-control">
                 </div>
-                <div class="input-group">
-                    <label>カテゴリー</label>
-                    <input type="text" id="input-category" placeholder="例: 名詞">
-                </div>
-                <div class="input-group">
-                    <label>日本語訳</label>
-                    <input type="text" id="input-translation" placeholder="例: 家">
-                </div>
-                <div class="input-group">
-                    <label>例文</label>
-                    <textarea id="input-example" placeholder="例文を入力"></textarea>
-                </div>
-                <div class="input-group">
-                    <label>例文の訳</label>
-                    <textarea id="input-example-translation" placeholder="例文の日本語訳を入力"></textarea>
-                </div>
+                <div class="input-group"><label>カテゴリー</label><input type="text" id="input-category"
+                        class="form-control"></div>
+                <div class="input-group"><label>翻訳 (日)</label><input type="text" id="input-translation"
+                        class="form-control"></div>
+                <div class="input-group"><label>例文 (独)</label><textarea id="input-example"
+                        class="form-control"></textarea></div>
+                <div class="input-group"><label>例文訳 (日)</label><textarea id="input-example-translation"
+                        class="form-control"></textarea></div>
             </div>
             <div class="btn-row">
                 <button id="btn-save" class="btn btn--primary">保存する</button>
                 <button id="btn-cancel" class="btn btn--secondary hidden">キャンセル</button>
             </div>
         </div>
-        <div class="admin-card import-section">
-            <h3>一括インポート (CSV)</h3>
-            <p style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 15px;">
-                形式: 単語, カテゴリー, 翻訳, 例文, 例文訳 (ヘッダーなし)
-            </p>
 
+        <div class="import-section">
+            <h3>一括インポート (CSV)</h3>
             <div class="file-upload-wrapper">
                 <input type="file" id="csv-file" accept=".csv" hidden>
-                <label for="csv-file" class="btn btn--secondary file-label">
-                    <span class="icon">📁</span> ファイルを選択
-                </label>
-                <span id="file-name-display"
-                    style="margin-left: 10px; font-size: 0.85rem; color: var(--text-sub);">選択されていません</span>
+                <label for="csv-file" class="btn btn--secondary" style="cursor:pointer; padding: 10px 15px;">📁
+                    ファイル選択</label>
+                <span id="file-name-display" style="font-size:0.8rem; color:var(--text-sub);">未選択</span>
             </div>
-
-            <div class="btn-row" style="margin-top: 20px;">
-                <button id="btn-import" class="btn btn--primary">インポートを実行</button>
-            </div>
-            <div id="import-status" style="margin-top:10px; font-size:0.85rem; font-weight: bold;"></div>
+            <button id="btn-import" class="btn btn--primary" style="width: 100%;">インポート実行</button>
+            <div id="import-status" style="margin-top:10px; font-size:0.8rem; font-weight:bold;"></div>
         </div>
 
         <div class="admin-controls">
-            <div class="search-box">
-                <input type="text" id="search-input" placeholder="登録した単語を検索...">
-            </div>
+            <input type="text" id="search-input" class="form-control" placeholder="検索...">
         </div>
 
-        <table class="vocab-table">
-            <thead>
-                <tr>
-                    <th>単語 / 意味</th>
-                    <th style="width: 100px; text-align:right;">操作</th>
-                </tr>
-            </thead>
-            <tbody id="vocab-list-body">
-            </tbody>
-        </table>
+        <div class="table-container" style="background:white; border-radius:20px; margin-top:10px;">
+            <table class="vocab-table">
+                <tbody id="vocab-list-body"></tbody>
+            </table>
+        </div>
 
-        <div class="pagination">
-            <button id="prev-page">← 前へ</button>
-            <span id="page-info">1 / 1</span>
-            <button id="next-page">次へ →</button>
+        <div class="pagination"
+            style="display:flex; justify-content:center; align-items:center; gap:15px; margin:20px 0;">
+            <button id="prev-page" class="btn-page"
+                style="background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer;">←
+                前へ</button>
+            <span id="page-info" style="font-weight:bold;">1 / 1</span>
+            <button id="next-page" class="btn-page"
+                style="background:none; border:none; color:var(--primary); font-weight:bold; cursor:pointer;">次へ
+                →</button>
         </div>
     </div>
 

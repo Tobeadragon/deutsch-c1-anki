@@ -2,30 +2,111 @@ let vocabulary = [];
 let filteredList = [];
 let currentPage = 1;
 const itemsPerPage = 15;
+const ADMIN_EMAIL = 'mastertyj@hotmail.com';
 
 const Admin = {
     async init() {
-        const client = DB._client();
-        const { data: { user } } = await client.auth.getUser();
-        if (!user) {
-            window.location.href = 'login.html';
+        // DB（Supabase）が準備できるまで待機
+        let client = DB._client();
+        if (!client) {
+            setTimeout(() => this.init(), 100);
             return;
         }
+
+        const { data: { user } } = await client.auth.getUser();
+        if (!user) { window.location.href = 'login.html'; return; }
+
+        // 管理者の場合のみ、UIを構築
+        if (user.email === ADMIN_EMAIL) {
+            await this.setupAdminUI();
+        }
+
         await this.loadData();
         this.bindEvents();
+    },
+
+    // 学習画面（index.html）で成功している DB.fetchUserDecks を利用する
+    async setupAdminUI() {
+        const adminControl = document.getElementById('admin-deck-control');
+        let select = document.getElementById('admin-deck-select');
+        const container = document.getElementById('deck-select-container');
+
+        if (!adminControl) return;
+        adminControl.style.display = 'block';
+
+        try {
+            const userDecks = await DB.fetchUserDecks();
+
+            if (!select && container) {
+                container.innerHTML = '';
+                select = document.createElement('select');
+                select.id = 'admin-deck-select';
+                select.className = 'admin-select';
+                container.appendChild(select);
+            }
+
+            if (!select) return;
+            select.innerHTML = '';
+
+            // --- ここから追加 ---
+            // リストの先頭にマイ辞書を追加（重複を防ぐため、既に含まれていないかチェック）
+            if (!userDecks.some(d => d.deck_id === 'User_Deck')) {
+                userDecks.unshift({ deck_id: 'User_Deck' });
+            }
+            // --- ここまで追加 ---
+
+            if (userDecks && userDecks.length > 0) {
+                userDecks.forEach(deck => {
+                    const opt = document.createElement('option');
+                    opt.value = deck.deck_id;
+
+                    let icon = '📚';
+                    if (deck.deck_id === 'User_Deck') icon = '⭐';
+                    else if (deck.deck_id.includes('FREE')) icon = '🆓';
+                    else if (deck.deck_id.match(/A1|B1|C1/)) icon = '🇩🇪';
+
+                    opt.textContent = `${icon} ${deck.deck_id}`;
+                    select.appendChild(opt);
+                });
+            }
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const currentDeck = urlParams.get('deck') || 'User_Deck';
+            select.value = currentDeck;
+
+            select.onchange = (e) => {
+                const newUrl = new URL(window.location.href);
+                newUrl.searchParams.set('deck', e.target.value);
+                window.location.href = newUrl.href;
+            };
+
+            const allSelects = adminControl.querySelectorAll('select');
+            allSelects.forEach(s => {
+                if (s !== select) s.style.display = 'none';
+            });
+
+        } catch (err) {
+            console.error("Deck setup error:", err);
+        }
     },
 
     async loadData() {
         const client = DB._client();
         const { data: { user } } = await client.auth.getUser();
+        const urlParams = new URLSearchParams(window.location.search);
+        const currentDeck = urlParams.get('deck') || 'User_Deck';
 
-        const { data, error } = await client
-            .from('cards')
-            .select('*')
-            .eq('deck_id', 'User_Deck')
-            .eq('created_by', user.id)
-            .order('id', { ascending: false });
+        // database.js の fetchAll と同じロジックを適用
+        let query = client.from('cards').select('*').eq('deck_id', currentDeck);
 
+        if (currentDeck === 'User_Deck') {
+            query = query.eq('created_by', user.id);
+        } else {
+            // 公式デッキの場合は作成者が null のものを取得
+            query = query.is('created_by', null);
+        }
+
+        const { data, error } = await query.order('id', { ascending: false });
         if (!error) {
             vocabulary = data;
             this.applyFilter();
@@ -33,128 +114,125 @@ const Admin = {
     },
 
     bindEvents() {
-        // 保存ボタン
-        document.getElementById('btn-save').onclick = () => this.saveWord();
+        const saveBtn = document.getElementById('btn-save');
+        if (saveBtn) saveBtn.onclick = () => this.saveWord();
 
-        // キャンセルボタン
-        document.getElementById('btn-cancel').onclick = () => this.clearForm();
+        const cancelBtn = document.getElementById('btn-cancel');
+        if (cancelBtn) cancelBtn.onclick = () => this.clearForm();
 
-        // ファイルが選択されたら名前を表示する処理
-        const fileInput = document.getElementById('csv-file');
-        const fileNameDisplay = document.getElementById('file-name-display');
-        if (fileInput && fileNameDisplay) {
-            fileInput.onchange = () => {
-                const file = fileInput.files[0];
-                fileNameDisplay.innerText = file ? file.name : "選択されていません";
+        const btnImport = document.getElementById('btn-import');
+        if (btnImport) btnImport.onclick = () => this.importCSV();
+
+        const searchInput = document.getElementById('search-input');
+        if (searchInput) {
+            searchInput.oninput = () => {
+                currentPage = 1;
+                this.applyFilter();
             };
         }
 
-        // CSVインポートボタン
-        const btnImport = document.getElementById('btn-import');
-        if (btnImport) {
-            btnImport.onclick = () => this.importCSV();
+        const prevBtn = document.getElementById('prev-page');
+        if (prevBtn) {
+            prevBtn.onclick = () => {
+                if (currentPage > 1) { currentPage--; this.renderList(); window.scrollTo(0, 0); }
+            };
         }
 
-        // 検索入力
-        document.getElementById('search-input').oninput = () => {
-            currentPage = 1;
-            this.applyFilter();
+        const nextBtn = document.getElementById('next-page');
+        if (nextBtn) {
+            nextBtn.onclick = () => {
+                if (currentPage < this.totalPages()) { currentPage++; this.renderList(); window.scrollTo(0, 0); }
+            };
+        }
+
+        // CSVファイル選択時の名前表示
+        const fileInput = document.getElementById('csv-file');
+        if (fileInput) {
+            fileInput.onchange = () => {
+                const display = document.getElementById('file-name-display');
+                if (display) display.innerText = fileInput.files[0]?.name || "未選択";
+            };
+        }
+    },
+
+    async saveWord() {
+        const client = DB._client();
+        const { data: { user } } = await client.auth.getUser();
+        const idField = document.getElementById('edit-id').value;
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetDeck = urlParams.get('deck') || 'User_Deck';
+
+        let finalId = idField ? parseInt(idField) : await this.getNextId(targetDeck);
+
+        const payload = {
+            id: finalId,
+            word: document.getElementById('input-word').value.trim(),
+            category: document.getElementById('input-category').value.trim(),
+            translation: document.getElementById('input-translation').value.trim(),
+            example: document.getElementById('input-example').value.trim(),
+            example_translation: document.getElementById('input-example-translation').value.trim(),
+            deck_id: targetDeck,
+            // 公式デッキなら null、マイ辞書なら user.id
+            created_by: targetDeck === 'User_Deck' ? user.id : null
         };
 
-        // ページネーション: 前へ
-        document.getElementById('prev-page').onclick = () => {
-            if (currentPage > 1) {
-                currentPage--;
-                this.renderList();
-                window.scrollTo({ top: document.querySelector('.admin-controls').offsetTop, behavior: 'smooth' });
-            }
-        };
+        if (!payload.word) return alert("単語を入力してください");
 
-        // ページネーション: 次へ
-        document.getElementById('next-page').onclick = () => {
-            if (currentPage < this.totalPages()) {
-                currentPage++;
-                this.renderList();
-                window.scrollTo({ top: document.querySelector('.admin-controls').offsetTop, behavior: 'smooth' });
-            }
-        };
+        const { error } = await client.from('cards').upsert(payload, { onConflict: 'deck_id, word' });
+        if (error) alert("保存失敗: " + error.message);
+        else { this.clearForm(); await this.loadData(); }
+    },
+
+    async getNextId(deckId) {
+        const client = DB._client();
+        let query = client.from('cards').select('id');
+        if (deckId === 'User_Deck') query = query.gte('id', 90000);
+        else query = query.lt('id', 90000);
+        const { data } = await query.order('id', { ascending: false }).limit(1);
+        return (data && data.length > 0) ? data[0].id + 1 : (deckId === 'User_Deck' ? 90000 : 1);
     },
 
     async importCSV() {
         const fileInput = document.getElementById('csv-file');
         const statusEl = document.getElementById('import-status');
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetDeck = urlParams.get('deck') || 'User_Deck';
 
-        if (!fileInput.files.length) return alert("CSVファイルを選択してください");
+        if (!fileInput || !fileInput.files.length) return alert("CSVファイルを選択してください");
 
         const file = fileInput.files[0];
         const reader = new FileReader();
-
-        statusEl.innerText = "読み込み中...";
-        statusEl.style.color = "var(--text-sub)";
+        if (statusEl) statusEl.innerText = "インポート中...";
 
         reader.onload = async (e) => {
-            const text = e.target.result;
-            // 行に分割（空行を除外）
-            const rows = text.split(/\r?\n/).filter(row => row.trim() !== "");
-
+            const rows = e.target.result.split(/\r?\n/).filter(r => r.trim() !== "");
             const client = DB._client();
             const { data: { user } } = await client.auth.getUser();
-            let nextId = await this.getNextId();
+            let nextId = await this.getNextId(targetDeck);
 
             const payload = rows.map(row => {
-                // カンマで分割するが、ダブルクォーテーション内のカンマは無視する正規表現
-                const regex = /(".*?"|[^",\s]+)(?=\s*,|\s*$)/g;
-                let cols = row.match(regex);
-
-                // 正規表現で取得できなかった場合のフォールバック
-                if (!cols) cols = row.split(',').map(c => c.trim());
-
-                // 各項目の前後にある引用符(")を削除し、余白をトリミング
-                const cleanCols = cols.map(c => c.replace(/^"|"$/g, '').trim());
-
-                // 最低限「単語, カテゴリ, 翻訳」の3列が必要
-                if (cleanCols.length < 3) return null;
-
+                const cols = row.split(',').map(c => c.replace(/^"|"$/g, '').trim());
+                if (cols.length < 3) return null;
                 return {
-                    id: nextId++,
-                    word: cleanCols[0],
-                    category: cleanCols[1] || "",
-                    translation: cleanCols[2] || "",
-                    example: cleanCols[3] || "",
-                    example_translation: cleanCols[4] || "",
-                    deck_id: 'User_Deck',
-                    created_by: user.id
+                    id: nextId++, word: cols[0], category: cols[1], translation: cols[2],
+                    example: cols[3] || "", example_translation: cols[4] || "",
+                    deck_id: targetDeck,
+                    created_by: targetDeck === 'User_Deck' ? user.id : null
                 };
             }).filter(d => d !== null);
 
-            if (payload.length === 0) {
-                statusEl.innerText = "有効なデータが見つかりませんでした。";
-                return;
-            }
-
-            // Supabaseへ一括送信（重複した単語は上書き）
             const { error } = await client.from('cards').upsert(payload, { onConflict: 'deck_id, word' });
-
-            if (error) {
-                statusEl.innerText = "エラー: " + error.message;
-                statusEl.style.color = "var(--danger)";
-            } else {
-                statusEl.innerText = `${payload.length} 件のインポートに成功しました！`;
-                statusEl.style.color = "var(--primary)";
-                fileInput.value = "";
-                if (document.getElementById('file-name-display')) document.getElementById('file-name-display').innerText = "選択されていません";
-                await this.loadData();
-            }
+            if (error) { if (statusEl) statusEl.innerText = "エラー: " + error.message; }
+            else { if (statusEl) statusEl.innerText = "完了！ (" + payload.length + "件)"; await this.loadData(); }
         };
-
         reader.readAsText(file);
     },
 
     applyFilter() {
-        const search = (document.getElementById('search-input').value || "").toLowerCase();
+        const s = (document.getElementById('search-input').value || "").toLowerCase();
         filteredList = vocabulary.filter(v =>
-            (v.word || "").toLowerCase().includes(search) ||
-            (v.translation || "").toLowerCase().includes(search)
+            (v.word || "").toLowerCase().includes(s) ||
+            (v.translation || "").toLowerCase().includes(s)
         );
         this.renderList();
     },
@@ -163,70 +241,20 @@ const Admin = {
 
     renderList() {
         const body = document.getElementById('vocab-list-body');
+        if (!body) return;
         const pageItems = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-
-        document.getElementById('page-info').innerText = `${currentPage} / ${this.totalPages()}`;
-        document.getElementById('prev-page').disabled = (currentPage === 1);
-        document.getElementById('next-page').disabled = (currentPage === this.totalPages() || this.totalPages() === 0);
-
-        if (filteredList.length === 0) {
-            body.innerHTML = '<tr><td colspan="2" style="text-align:center; padding:40px; color:var(--text-sub);">単語が見つかりません</td></tr>';
-            return;
-        }
+        const pageInfo = document.getElementById('page-info');
+        if (pageInfo) pageInfo.innerText = `${currentPage} / ${this.totalPages()}`;
 
         body.innerHTML = pageItems.map(v => `
             <tr>
-                <td>
-                    <div style="font-weight:bold; color:var(--primary); font-size:1.05rem;">${v.word}</div>
-                    <div style="font-size:0.85rem; color:var(--text-sub); margin-top:2px;">${v.translation}</div>
-                </td>
+                <td><strong>${v.word}</strong><br><small style="color:#666">${v.translation}</small></td>
                 <td style="text-align:right;">
-                    <button class="btn-edit-sm" onclick="Admin.editItem(${v.id})">✏️</button>
-                    <button class="btn-edit-sm" onclick="Admin.deleteItem(${v.id})" style="color:var(--danger)">🗑️</button>
+                    <button class="btn-edit-sm" onclick="Admin.editItem(${v.id})" style="margin-right:5px;">✏️</button>
+                    <button class="btn-edit-sm" onclick="Admin.deleteItem(${v.id})" style="color:red;">🗑️</button>
                 </td>
             </tr>
         `).join('');
-    },
-
-    async saveWord() {
-        const client = DB._client();
-        const { data: { user } } = await client.auth.getUser();
-        const idField = document.getElementById('edit-id').value;
-        const word = document.getElementById('input-word').value.trim();
-
-        if (!word) return alert("単語を入力してください");
-
-        let finalId = idField ? parseInt(idField) : await this.getNextId();
-
-        const payload = {
-            id: finalId,
-            word: word,
-            category: document.getElementById('input-category').value,
-            translation: document.getElementById('input-translation').value,
-            example: document.getElementById('input-example').value,
-            example_translation: document.getElementById('input-example-translation').value,
-            deck_id: 'User_Deck',
-            created_by: user.id
-        };
-
-        const { error } = await client.from('cards').upsert(payload, { onConflict: 'deck_id, word' });
-        if (error) {
-            alert("エラー: " + error.message);
-        } else {
-            this.clearForm();
-            await this.loadData();
-        }
-    },
-
-    async getNextId() {
-        const client = DB._client();
-        const { data } = await client
-            .from('cards')
-            .select('id')
-            .gte('id', 90000)
-            .order('id', { ascending: false })
-            .limit(1);
-        return (data && data.length > 0) ? data[0].id + 1 : 90000;
     },
 
     editItem(id) {
@@ -239,46 +267,28 @@ const Admin = {
         document.getElementById('input-example').value = v.example;
         document.getElementById('input-example-translation').value = v.example_translation;
 
-        document.getElementById('form-title').innerText = "単語を編集 (ID:" + v.id + ")";
-        document.getElementById('btn-save').innerText = "更新する";
-        document.getElementById('btn-cancel').classList.remove('hidden');
+        const saveBtn = document.getElementById('btn-save');
+        if (saveBtn) saveBtn.innerText = "更新する";
+        const cancelBtn = document.getElementById('btn-cancel');
+        if (cancelBtn) cancelBtn.classList.remove('hidden');
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
     async deleteItem(id) {
-        if (!confirm("この単語をマイ辞書から完全に削除しますか？")) return;
+        if (!confirm("この単語を削除しますか？")) return;
         const client = DB._client();
-        const { error } = await client.from('cards').delete().eq('id', id);
-        if (error) alert("削除失敗");
-        else await this.loadData();
+        await client.from('cards').delete().eq('id', id);
+        await this.loadData();
     },
 
     clearForm() {
         document.getElementById('edit-id').value = "";
-        document.querySelectorAll('.admin-card input, .admin-card textarea').forEach(el => el.value = "");
-        document.getElementById('form-title').innerText = "新規単語を追加";
-        document.getElementById('btn-save').innerText = "保存する";
-        document.getElementById('btn-cancel').classList.add('hidden');
-    },
-
-    speak(t) {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance(t);
-        u.lang = 'de-DE';
-
-        let voices = window.speechSynthesis.getVoices();
-        const bestVoice = voices.find(v => v.lang.startsWith('de') && (
-            v.name.includes('Google') ||
-            v.name.includes('Natural') ||
-            v.name.includes('Premium') ||
-            v.name.includes('Siri')
-        )) || voices.find(v => v.lang.startsWith('de'));
-
-        if (bestVoice) u.voice = bestVoice;
-        u.rate = 0.88;
-        u.pitch = 1.0;
-
-        window.speechSynthesis.speak(u);
+        document.querySelectorAll('.form-control').forEach(el => el.value = "");
+        const saveBtn = document.getElementById('btn-save');
+        if (saveBtn) saveBtn.innerText = "保存する";
+        const cancelBtn = document.getElementById('btn-cancel');
+        if (cancelBtn) cancelBtn.classList.add('hidden');
     }
 };
 
