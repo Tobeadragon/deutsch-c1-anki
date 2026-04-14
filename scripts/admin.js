@@ -39,7 +39,17 @@ const Admin = {
         // キャンセルボタン
         document.getElementById('btn-cancel').onclick = () => this.clearForm();
 
-        // CSVインポートボタン (追加)
+        // ファイルが選択されたら名前を表示する処理
+        const fileInput = document.getElementById('csv-file');
+        const fileNameDisplay = document.getElementById('file-name-display');
+        if (fileInput && fileNameDisplay) {
+            fileInput.onchange = () => {
+                const file = fileInput.files[0];
+                fileNameDisplay.innerText = file ? file.name : "選択されていません";
+            };
+        }
+
+        // CSVインポートボタン
         const btnImport = document.getElementById('btn-import');
         if (btnImport) {
             btnImport.onclick = () => this.importCSV();
@@ -70,6 +80,76 @@ const Admin = {
         };
     },
 
+    async importCSV() {
+        const fileInput = document.getElementById('csv-file');
+        const statusEl = document.getElementById('import-status');
+
+        if (!fileInput.files.length) return alert("CSVファイルを選択してください");
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        statusEl.innerText = "読み込み中...";
+        statusEl.style.color = "var(--text-sub)";
+
+        reader.onload = async (e) => {
+            const text = e.target.result;
+            // 行に分割（空行を除外）
+            const rows = text.split(/\r?\n/).filter(row => row.trim() !== "");
+
+            const client = DB._client();
+            const { data: { user } } = await client.auth.getUser();
+            let nextId = await this.getNextId();
+
+            const payload = rows.map(row => {
+                // カンマで分割するが、ダブルクォーテーション内のカンマは無視する正規表現
+                const regex = /(".*?"|[^",\s]+)(?=\s*,|\s*$)/g;
+                let cols = row.match(regex);
+
+                // 正規表現で取得できなかった場合のフォールバック
+                if (!cols) cols = row.split(',').map(c => c.trim());
+
+                // 各項目の前後にある引用符(")を削除し、余白をトリミング
+                const cleanCols = cols.map(c => c.replace(/^"|"$/g, '').trim());
+
+                // 最低限「単語, カテゴリ, 翻訳」の3列が必要
+                if (cleanCols.length < 3) return null;
+
+                return {
+                    id: nextId++,
+                    word: cleanCols[0],
+                    category: cleanCols[1] || "",
+                    translation: cleanCols[2] || "",
+                    example: cleanCols[3] || "",
+                    example_translation: cleanCols[4] || "",
+                    deck_id: 'User_Deck',
+                    created_by: user.id
+                };
+            }).filter(d => d !== null);
+
+            if (payload.length === 0) {
+                statusEl.innerText = "有効なデータが見つかりませんでした。";
+                return;
+            }
+
+            // Supabaseへ一括送信（重複した単語は上書き）
+            const { error } = await client.from('cards').upsert(payload, { onConflict: 'deck_id, word' });
+
+            if (error) {
+                statusEl.innerText = "エラー: " + error.message;
+                statusEl.style.color = "var(--danger)";
+            } else {
+                statusEl.innerText = `${payload.length} 件のインポートに成功しました！`;
+                statusEl.style.color = "var(--primary)";
+                fileInput.value = "";
+                if (document.getElementById('file-name-display')) document.getElementById('file-name-display').innerText = "選択されていません";
+                await this.loadData();
+            }
+        };
+
+        reader.readAsText(file);
+    },
+
     applyFilter() {
         const search = (document.getElementById('search-input').value || "").toLowerCase();
         filteredList = vocabulary.filter(v =>
@@ -85,7 +165,6 @@ const Admin = {
         const body = document.getElementById('vocab-list-body');
         const pageItems = filteredList.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
-        // UI更新: ページ情報とボタンの活性状態
         document.getElementById('page-info').innerText = `${currentPage} / ${this.totalPages()}`;
         document.getElementById('prev-page').disabled = (currentPage === 1);
         document.getElementById('next-page').disabled = (currentPage === this.totalPages() || this.totalPages() === 0);
@@ -130,7 +209,7 @@ const Admin = {
             created_by: user.id
         };
 
-        const { error } = await client.from('cards').upsert(payload);
+        const { error } = await client.from('cards').upsert(payload, { onConflict: 'deck_id, word' });
         if (error) {
             alert("エラー: " + error.message);
         } else {
@@ -180,6 +259,26 @@ const Admin = {
         document.getElementById('form-title').innerText = "新規単語を追加";
         document.getElementById('btn-save').innerText = "保存する";
         document.getElementById('btn-cancel').classList.add('hidden');
+    },
+
+    speak(t) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance(t);
+        u.lang = 'de-DE';
+
+        let voices = window.speechSynthesis.getVoices();
+        const bestVoice = voices.find(v => v.lang.startsWith('de') && (
+            v.name.includes('Google') ||
+            v.name.includes('Natural') ||
+            v.name.includes('Premium') ||
+            v.name.includes('Siri')
+        )) || voices.find(v => v.lang.startsWith('de'));
+
+        if (bestVoice) u.voice = bestVoice;
+        u.rate = 0.88;
+        u.pitch = 1.0;
+
+        window.speechSynthesis.speak(u);
     }
 };
 
