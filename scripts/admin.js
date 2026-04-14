@@ -262,7 +262,7 @@ const Admin = {
         if (!v) return;
         document.getElementById('edit-id').value = v.id;
         document.getElementById('input-word').value = v.word;
-        document.getElementById('input-category').value = v.category;
+        document.getElementById('input-category').value = v.category || "";
         document.getElementById('input-translation').value = v.translation;
         document.getElementById('input-example').value = v.example;
         document.getElementById('input-example-translation').value = v.example_translation;
