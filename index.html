@@ -10,17 +10,13 @@
     <link rel="icon" href="image/favicon/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        // ログインガード：セッションがなければlogin.htmlへ
         (function () {
             const isAuthCallback = window.location.hash.includes('access_token=');
-            const urlParams = new URLSearchParams(window.location.search);
-            const isSkipped = urlParams.get('skip') === 'true' || sessionStorage.getItem('login_skipped');
             const hasSession = Object.keys(localStorage).some(key => key.startsWith('sb-') && key.endsWith('-auth-token'));
 
-            if (!isAuthCallback && !isSkipped && !hasSession) {
+            if (!isAuthCallback && !hasSession) {
                 window.location.href = 'login.html';
-            }
-            if (urlParams.get('skip') === 'true') {
-                sessionStorage.setItem('login_skipped', 'true');
             }
         })();
     </script>
@@ -28,6 +24,15 @@
 
 <body>
     <div class="app-container">
+        <div id="passkey-registration-area"
+            style="background: #fff; padding: 12px; border-radius: 16px; margin-bottom: 20px; display: none; border: 2px solid #eee; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+            <p style="font-size: 0.85rem; margin: 0 0 10px 0; color: #444;">次回から指紋・顔認証でログインできます</p>
+            <button id="btn-register-passkey"
+                style="background: #000; color: #fff; border: none; padding: 10px 20px; border-radius: 10px; font-size: 0.85rem; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 8px;">
+                🔑 パスキーを登録する
+            </button>
+        </div>
+
         <header class="main-header">
             <div class="header-top">
                 <h1>Anki Meister</h1>
@@ -140,14 +145,64 @@
             </div>
         </div>
 
-        <div class="admin-link-container">
-            <a href="admin.html" class="admin-link">⚙️ 単語の管理・ステータス変更</a>
+        <div class="admin-link-container"
+            style="display: flex; justify-content: center; gap: 25px; margin-top: 30px; margin-bottom: 20px;">
+            <a href="admin.html" class="admin-link"
+                style="text-decoration: none; font-size: 0.85rem; color: var(--text-sub);">⚙️ 単語の管理</a>
+            <a href="#" id="btn-logout" class="admin-link"
+                style="text-decoration: none; font-size: 0.85rem; color: #ff3b30; font-weight: bold;">🚪 ログアウト</a>
         </div>
     </div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./scripts/config.js"></script>
     <script src="./scripts/database.js"></script>
     <script src="./scripts/script.js"></script>
+
+    <script>
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        // 1. ログイン状態を確認してパスキー案内を表示
+        async function initPasskeyCheck() {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const isRegistered = localStorage.getItem('passkey_registered_' + user?.id);
+
+            if (user && !isRegistered) {
+                document.getElementById('passkey-registration-area').style.display = 'block';
+            }
+        }
+
+        // 2. パスキー登録ボタンの動作
+        document.getElementById('btn-register-passkey').onclick = async () => {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const { error } = await supabaseClient.auth.addPasskey();
+
+            if (error) {
+                alert("登録エラー: " + error.message);
+            } else {
+                alert("✅ パスキーの登録が完了しました！\n次回からメールなしでログインできます。");
+                localStorage.setItem('passkey_registered_' + user.id, 'true');
+                document.getElementById('passkey-registration-area').style.display = 'none';
+            }
+        };
+
+        // 3. ログアウト処理
+        document.getElementById('btn-logout').onclick = async (e) => {
+            e.preventDefault();
+            if (!confirm("ログアウトしますか？")) return;
+
+            const { error } = await supabaseClient.auth.signOut();
+            if (error) {
+                alert("ログアウト失敗: " + error.message);
+            } else {
+                // セッションとキャッシュをクリアしてログイン画面へ
+                localStorage.clear();
+                window.location.href = 'login.html';
+            }
+        };
+
+        initPasskeyCheck();
+    </script>
 </body>
 
 </html>
