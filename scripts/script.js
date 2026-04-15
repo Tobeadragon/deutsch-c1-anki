@@ -30,29 +30,52 @@ const App = {
     async initDeckSelector() {
         const selector = document.getElementById('deck-select');
         if (!selector) return;
+
         const userDecks = await DB.fetchUserDecks();
+
+        // 表示したい順番で定義
         const nameMap = {
             'FREE_SAMPLE': '🆓 無料サンプル',
-            'A1_FULL': '🇩🇪 ドイツ語 A1 100',
             'A2_VOL1': '🇩🇪 ドイツ語 A2 VOL1',
+            'A1_FULL': '🇩🇪 ドイツ語 A1 100',
             'B1_VOL1': '🇩🇪 ドイツ語 B1 VOL1',
             'C1_VOL1': '🇩🇪 ドイツ語 C1 VOL1',
             'C1_VOL2': '🇩🇪 ドイツ語 C1 VOL2',
             'User_Deck': '⭐ マイ辞書 (自分専用)'
         };
+
         selector.innerHTML = '';
         if (userDecks.length === 0) {
             selector.innerHTML = '<option>許可されたデッキがありません</option>';
             return;
         }
-        userDecks.forEach(d => {
-            const opt = document.createElement('option');
-            opt.value = d.deck_id;
-            opt.innerText = nameMap[d.deck_id] || d.deck_id.replace(/_/g, ' ');
-            const currentInUrl = new URLSearchParams(window.location.search).get('deck') || 'FREE_SAMPLE';
-            if (d.deck_id === currentInUrl) opt.selected = true;
-            selector.appendChild(opt);
+
+        // ユーザーが持っているデッキIDのセットを作成（検索を高速化）
+        const userDeckIds = new Set(userDecks.map(d => d.deck_id));
+        const currentInUrl = new URLSearchParams(window.location.search).get('deck') || 'FREE_SAMPLE';
+
+        // nameMapのキーの順番でループを回す
+        Object.keys(nameMap).forEach(deckId => {
+            if (userDeckIds.has(deckId)) {
+                const opt = document.createElement('option');
+                opt.value = deckId;
+                opt.innerText = nameMap[deckId];
+                if (deckId === currentInUrl) opt.selected = true;
+                selector.appendChild(opt);
+            }
         });
+
+        // もしnameMapに定義されていないデッキがDBにある場合、最後に追加する場合
+        userDecks.forEach(d => {
+            if (!nameMap[d.deck_id]) {
+                const opt = document.createElement('option');
+                opt.value = d.deck_id;
+                opt.innerText = d.deck_id.replace(/_/g, ' ');
+                if (d.deck_id === currentInUrl) opt.selected = true;
+                selector.appendChild(opt);
+            }
+        });
+
         selector.onchange = (e) => {
             const newDeck = e.target.value;
             window.location.href = window.location.pathname + '?deck=' + newDeck;
