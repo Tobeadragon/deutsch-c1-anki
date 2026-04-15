@@ -162,45 +162,67 @@
     <script>
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 1. ログイン状態を確認してパスキー案内を表示
+        // 1. ログイン状態を確認（要素がある場合のみ表示制御）
         async function initPasskeyCheck() {
             const { data: { user } } = await supabaseClient.auth.getUser();
-            const isRegistered = localStorage.getItem('passkey_registered_' + user?.id);
+            if (!user) return;
 
-            if (user && !isRegistered) {
-                document.getElementById('passkey-registration-area').style.display = 'block';
+            const isRegistered = localStorage.getItem('passkey_registered_' + user.id);
+            const registrationArea = document.getElementById('passkey-registration-area');
+
+            // 要素が存在する場合のみ、表示・非表示を切り替える
+            if (registrationArea) {
+                if (!isRegistered) {
+                    registrationArea.style.display = 'block';
+                } else {
+                    registrationArea.style.display = 'none';
+                }
             }
         }
 
-        // 2. パスキー登録ボタンの動作
-        document.getElementById('btn-register-passkey').onclick = async () => {
-            const { data: { user } } = await supabaseClient.auth.getUser();
-            const { error } = await supabaseClient.auth.addPasskey();
+        // 2. パスキー登録ボタン（要素がある場合のみイベントを登録）
+        const passkeyBtn = document.getElementById('btn-register-passkey');
+        if (passkeyBtn) {
+            passkeyBtn.onclick = async () => {
+                const { data: { user } } = await supabaseClient.auth.getUser();
+                // 現在のSupabase JS SDKのバージョンによっては addPasskey が未実装のため、
+                // エラー回避のために try-catch または存在確認を推奨
+                try {
+                    const { error } = await supabaseClient.auth.addPasskey();
+                    if (error) {
+                        alert("登録エラー: " + error.message);
+                    } else {
+                        alert("✅ パスキーの登録が完了しました！");
+                        localStorage.setItem('passkey_registered_' + user.id, 'true');
+                        const registrationArea = document.getElementById('passkey-registration-area');
+                        if (registrationArea) registrationArea.style.display = 'none';
+                    }
+                } catch (e) {
+                    console.error("Passkey implementation missing or failed", e);
+                    alert("パスキー機能は現在ご利用いただけません。");
+                }
+            };
+        }
 
-            if (error) {
-                alert("登録エラー: " + error.message);
-            } else {
-                alert("✅ パスキーの登録が完了しました！\n次回からメールなしでログインできます。");
-                localStorage.setItem('passkey_registered_' + user.id, 'true');
-                document.getElementById('passkey-registration-area').style.display = 'none';
-            }
-        };
+        // 3. ログアウト処理（これは常に動くようにガードを外すか、存在確認を徹底）
+        const logoutBtn = document.getElementById('btn-logout');
+        if (logoutBtn) {
+            logoutBtn.onclick = async (e) => {
+                e.preventDefault();
+                if (!confirm("ログアウトしますか？")) return;
 
-        // 3. ログアウト処理
-        document.getElementById('btn-logout').onclick = async (e) => {
-            e.preventDefault();
-            if (!confirm("ログアウトしますか？")) return;
+                const { error } = await supabaseClient.auth.signOut();
+                if (error) {
+                    alert("ログアウト失敗: " + error.message);
+                } else {
+                    // セッションとキャッシュをクリアしてログイン画面へ
+                    localStorage.clear();
+                    window.location.href = 'login.html';
+                }
+            };
+        }
 
-            const { error } = await supabaseClient.auth.signOut();
-            if (error) {
-                alert("ログアウト失敗: " + error.message);
-            } else {
-                // セッションとキャッシュをクリアしてログイン画面へ
-                localStorage.clear();
-                window.location.href = 'login.html';
-            }
-        };
-
+        // 実行
         initPasskeyCheck();
     </script>
 </body>
