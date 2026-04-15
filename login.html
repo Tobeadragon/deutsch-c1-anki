@@ -56,25 +56,6 @@
             margin-bottom: 15px;
         }
 
-        .btn-skip {
-            width: 100%;
-            padding: 12px;
-            background: #f0f0f0;
-            color: #666;
-            border: 2px dashed #ccc;
-            border-radius: 12px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 30px;
-            transition: 0.3s;
-        }
-
-        .btn-skip:hover {
-            background: #e0e0e0;
-            border-color: #999;
-            color: #333;
-        }
-
         .divider {
             margin: 20px 0;
             color: #ccc;
@@ -107,61 +88,48 @@
             <input type="email" id="email" class="login-input" placeholder="E-Mail Addresse">
             <button id="magic-link-btn" class="btn-primary">ログインリンク送信</button>
 
-            <button id="skip-btn" class="btn-skip">
-                🧪 検証用：ログインせずに開始<br>
-                <small>(ローカルストレージを使用)</small>
-            </button>
-
-            <p id="msg" style="margin-top: 20px; color: var(--primary); font-weight: bold;"></p>
+            <p id="msg" style="margin-top: 20px; color: var(--primary); font-weight: bold; min-height: 1.2em;"></p>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <script src="./scripts/config.js"></script>
 
     <script>
-        // type="module" を外したので、普通の JavaScript として動きます
-
-        // Supabaseの初期化
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // 1. マジックリンク送信
+        // 1. マジックリンク送信（新規ユーザーもここから）
         document.getElementById('magic-link-btn').onclick = async () => {
             const email = document.getElementById('email').value;
             if (!email) return alert("Emailを入力してください");
 
-            // 現在のパス（/deutsch-c1-anki/login.html）から index.html へのパスを自動生成
             const redirectUrl = window.location.href.replace('login.html', 'index.html');
 
             const { error } = await supabaseClient.auth.signInWithOtp({
                 email,
-                options: {
-                    emailRedirectTo: redirectUrl
-                }
+                options: { emailRedirectTo: redirectUrl }
             });
 
             if (error) alert(error.message);
             else document.getElementById('msg').innerText = "📩 メールを送信しました。";
         };
 
-        // 2. パキーログイン
+        // 2. パキーログイン (メールアドレス入力後に実行)
         document.getElementById('passkey-btn').onclick = async () => {
-            const { error } = await supabaseClient.auth.signInWithPasskey();
-            if (error) alert("パスキー未登録です。まずはメールでログインしてください。");
-            else window.location.href = 'index.html';
-        };
+            const email = document.getElementById('email').value;
+            if (!email) {
+                alert("パスキーを使用するには、まずメールアドレスを入力してください。");
+                return;
+            }
 
-        // 3. スキップボタン（?skip=true を付けて index.html に戻る）
-        document.getElementById('skip-btn').onclick = function () {
-            console.log("Skip button clicked");
-            // URLにパラメータを付けることで、index.html側での強制追い返しを防ぎます
-            window.location.href = 'index.html?skip=true';
-        };
+            const { error } = await supabaseClient.auth.signInWithPasskey({ email });
 
-        // 4. (将来用) 新規ユーザー登録への配慮
-        // 実は上記のマジックリンク送信(1)が、新規登録も兼ねています。
-        // 初めてのメールアドレスなら自動で「サインアップ」扱いになります。
+            if (error) {
+                alert("パスキーが見つからないか、エラーが発生しました。\n初回はメールリンクでログインし、設定から登録を行ってください。");
+            } else {
+                window.location.href = 'index.html';
+            }
+        };
     </script>
 </body>
 
