@@ -39,6 +39,7 @@ const App = {
             'A1_VOL1': '🇩🇪 ドイツ語 A1 VOL1',
             'A2_VOL1': '🇩🇪 ドイツ語 A2 VOL1',
             'B1_VOL1': '🇩🇪 ドイツ語 B1 VOL1',
+            'B2_VOL1': '🇩🇪 ドイツ語 B2 VOL1',
             'C1_VOL1': '🇩🇪 ドイツ語 C1 VOL1',
             'C1_VOL2': '🇩🇪 ドイツ語 C1 VOL2',
             'User_Deck': '⭐ マイ辞書 (自分専用)'
