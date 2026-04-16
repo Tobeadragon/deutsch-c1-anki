@@ -112,7 +112,7 @@ const DB = {
 (function () {
     let logoutTimer;
     // 2時間 = 7200000ミリ秒
-    const AUTO_LOGOUT_TIME = 2 * 60 * 60 * 1000;
+    const AUTO_LOGOUT_TIME = 24 * 60 * 60 * 1000;
 
     async function executeAutoLogout() {
         const client = DB._client();
