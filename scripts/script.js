@@ -36,8 +36,8 @@ const App = {
         // 表示したい順番で定義
         const nameMap = {
             'FREE_SAMPLE': '🆓 無料サンプル',
-            'A2_VOL1': '🇩🇪 ドイツ語 A2 VOL1',
             'A1_FULL': '🇩🇪 ドイツ語 A1 100',
+            'A2_VOL1': '🇩🇪 ドイツ語 A2 VOL1',
             'B1_VOL1': '🇩🇪 ドイツ語 B1 VOL1',
             'C1_VOL1': '🇩🇪 ドイツ語 C1 VOL1',
             'C1_VOL2': '🇩🇪 ドイツ語 C1 VOL2',
