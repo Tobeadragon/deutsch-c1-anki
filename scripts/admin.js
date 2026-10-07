@@ -16,9 +16,12 @@ const Admin = {
         const { data: { user } } = await client.auth.getUser();
         if (!user) { window.location.href = 'login.html'; return; }
 
-        // 管理者の場合のみ、UIを構築
+        // 管理者の場合のみ、公式デッキ切替UIを構築
         if (user.email === ADMIN_EMAIL) {
             await this.setupAdminUI();
+        } else {
+            const formTitle = document.getElementById('form-title');
+            if (formTitle) formTitle.innerText = '自分の単語帳に追加';
         }
 
         await this.loadData();
@@ -48,30 +51,26 @@ const Admin = {
             if (!select) return;
             select.innerHTML = '';
 
-            // --- ここから追加 ---
-            // リストの先頭にマイ辞書を追加（重複を防ぐため、既に含まれていないかチェック）
-            if (!userDecks.some(d => d.deck_id === 'User_Deck')) {
-                userDecks.unshift({ deck_id: 'User_Deck' });
-            }
-            // --- ここまで追加 ---
-
             if (userDecks && userDecks.length > 0) {
                 userDecks.forEach(deck => {
                     const opt = document.createElement('option');
                     opt.value = deck.deck_id;
 
-                    let icon = '📚';
-                    if (deck.deck_id === 'User_Deck') icon = '⭐';
-                    else if (deck.deck_id.includes('FREE')) icon = '🆓';
-                    else if (deck.deck_id.match(/A1|B1|C1/)) icon = '🇩🇪';
-
-                    opt.textContent = `${icon} ${deck.deck_id}`;
+                    if (DB.isPersonalDeck(deck.deck_id)) {
+                        opt.textContent = '📒 自分の単語帳';
+                    } else if (deck.deck_id.includes('FREE')) {
+                        opt.textContent = `🆓 ${deck.deck_id}`;
+                    } else if (deck.deck_id.match(/A1|A2|B1|B2|C1/)) {
+                        opt.textContent = `🇩🇪 ${deck.deck_id}`;
+                    } else {
+                        opt.textContent = `📚 ${deck.deck_id}`;
+                    }
                     select.appendChild(opt);
                 });
             }
 
             const urlParams = new URLSearchParams(window.location.search);
-            const currentDeck = urlParams.get('deck') || 'User_Deck';
+            const currentDeck = urlParams.get('deck') || DB.PERSONAL_DECK_ID;
             select.value = currentDeck;
 
             select.onchange = (e) => {
@@ -94,15 +93,16 @@ const Admin = {
         const client = DB._client();
         const { data: { user } } = await client.auth.getUser();
         const urlParams = new URLSearchParams(window.location.search);
-        const currentDeck = urlParams.get('deck') || 'User_Deck';
+        const isAdmin = user.email === ADMIN_EMAIL;
+        const currentDeck = isAdmin
+            ? (urlParams.get('deck') || DB.PERSONAL_DECK_ID)
+            : DB.PERSONAL_DECK_ID;
 
-        // database.js の fetchAll と同じロジックを適用
         let query = client.from('cards').select('*').eq('deck_id', currentDeck);
 
-        if (currentDeck === 'User_Deck') {
+        if (DB.isPersonalDeck(currentDeck)) {
             query = query.eq('created_by', user.id);
         } else {
-            // 公式デッキの場合は作成者が null のものを取得
             query = query.is('created_by', null);
         }
 
@@ -160,43 +160,76 @@ const Admin = {
         const { data: { user } } = await client.auth.getUser();
         const idField = document.getElementById('edit-id').value;
         const urlParams = new URLSearchParams(window.location.search);
-        const targetDeck = urlParams.get('deck') || 'User_Deck';
-
-        let finalId = idField ? parseInt(idField) : await this.getNextId(targetDeck);
+        const isAdmin = user.email === ADMIN_EMAIL;
+        const targetDeck = isAdmin
+            ? (urlParams.get('deck') || DB.PERSONAL_DECK_ID)
+            : DB.PERSONAL_DECK_ID;
 
         const payload = {
-            id: finalId,
             word: document.getElementById('input-word').value.trim(),
             category: document.getElementById('input-category').value.trim(),
             translation: document.getElementById('input-translation').value.trim(),
             example: document.getElementById('input-example').value.trim(),
             example_translation: document.getElementById('input-example-translation').value.trim(),
             deck_id: targetDeck,
-            // 公式デッキなら null、マイ辞書なら user.id
-            created_by: targetDeck === 'User_Deck' ? user.id : null
+            created_by: DB.isPersonalDeck(targetDeck) ? user.id : null
         };
 
         if (!payload.word) return alert("単語を入力してください");
 
-        const { error } = await client.from('cards').upsert(payload, { onConflict: 'deck_id, word' });
+        const editId = idField ? parseInt(idField) : null;
+        if (DB.isPersonalDeck(targetDeck)) {
+            const duplicate = await this.findPersonalDuplicate(user.id, payload.word, editId);
+            if (duplicate) return alert("登録済みです");
+        }
+
+        let error;
+        if (editId) {
+            const result = await client.from('cards').update(payload).eq('id', editId);
+            error = result.error;
+        } else {
+            payload.id = await this.getNextId(targetDeck);
+            const result = await client.from('cards').insert(payload);
+            error = result.error;
+        }
+
         if (error) alert("保存失敗: " + error.message);
         else { this.clearForm(); await this.loadData(); }
+    },
+
+    normalizeWord(word) {
+        return (word || "").trim().toLowerCase();
+    },
+
+    async findPersonalDuplicate(userId, word, excludeId) {
+        const client = DB._client();
+        const { data } = await client
+            .from('cards')
+            .select('id, word')
+            .eq('deck_id', DB.PERSONAL_DECK_ID)
+            .eq('created_by', userId);
+
+        if (!data) return null;
+        const target = this.normalizeWord(word);
+        return data.find(card => {
+            if (excludeId && card.id === excludeId) return false;
+            return this.normalizeWord(card.word) === target;
+        }) || null;
     },
 
     async getNextId(deckId) {
         const client = DB._client();
         let query = client.from('cards').select('id');
-        if (deckId === 'User_Deck') query = query.gte('id', 90000);
+        if (DB.isPersonalDeck(deckId)) query = query.gte('id', 90000);
         else query = query.lt('id', 90000);
         const { data } = await query.order('id', { ascending: false }).limit(1);
-        return (data && data.length > 0) ? data[0].id + 1 : (deckId === 'User_Deck' ? 90000 : 1);
+        return (data && data.length > 0) ? data[0].id + 1 : (DB.isPersonalDeck(deckId) ? 90000 : 1);
     },
 
     async importCSV() {
         const fileInput = document.getElementById('csv-file');
         const statusEl = document.getElementById('import-status');
-        const urlParams = new URLSearchParams(window.location.search);
-        const targetDeck = urlParams.get('deck') || 'User_Deck';
+        const targetDeck = DB.PERSONAL_DECK_ID;
 
         if (!fileInput || !fileInput.files.length) return alert("CSVファイルを選択してください");
 
@@ -210,20 +243,47 @@ const Admin = {
             const { data: { user } } = await client.auth.getUser();
             let nextId = await this.getNextId(targetDeck);
 
+            const { data: existingCards } = await client
+                .from('cards')
+                .select('word')
+                .eq('deck_id', targetDeck)
+                .eq('created_by', user.id);
+
+            const existingWords = new Set((existingCards || []).map(c => this.normalizeWord(c.word)));
+            const seenInFile = new Set();
+            let skipped = 0;
+
             const payload = rows.map(row => {
                 const cols = row.split(',').map(c => c.replace(/^"|"$/g, '').trim());
                 if (cols.length < 3) return null;
+                const word = cols[0];
+                const key = this.normalizeWord(word);
+                if (!key || existingWords.has(key) || seenInFile.has(key)) {
+                    skipped++;
+                    return null;
+                }
+                seenInFile.add(key);
+                existingWords.add(key);
                 return {
-                    id: nextId++, word: cols[0], category: cols[1], translation: cols[2],
+                    id: nextId++, word, category: cols[1], translation: cols[2],
                     example: cols[3] || "", example_translation: cols[4] || "",
                     deck_id: targetDeck,
-                    created_by: targetDeck === 'User_Deck' ? user.id : null
+                    created_by: user.id
                 };
             }).filter(d => d !== null);
 
-            const { error } = await client.from('cards').upsert(payload, { onConflict: 'deck_id, word' });
+            if (payload.length === 0) {
+                if (statusEl) statusEl.innerText = skipped > 0 ? "登録済みです（新規は0件）" : "取り込める行がありません";
+                return;
+            }
+
+            const { error } = await client.from('cards').insert(payload);
             if (error) { if (statusEl) statusEl.innerText = "エラー: " + error.message; }
-            else { if (statusEl) statusEl.innerText = "完了！ (" + payload.length + "件)"; await this.loadData(); }
+            else {
+                const skipNote = skipped > 0 ? ` / 登録済みスキップ ${skipped}件` : "";
+                if (statusEl) statusEl.innerText = "自分の単語帳へ完了！ (" + payload.length + "件" + skipNote + ")";
+                await this.loadData();
+            }
         };
         reader.readAsText(file);
     },

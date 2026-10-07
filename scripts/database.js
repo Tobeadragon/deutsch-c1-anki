@@ -2,6 +2,7 @@ const DB = {
     key: 'C1_ANKI_DB_PRO',
     _instance: null,
     currentDeckId: null,
+    PERSONAL_DECK_ID: 'User_Deck',
 
     _client() {
         if (this._instance) return this._instance;
@@ -16,35 +17,34 @@ const DB = {
         return null;
     },
 
-    // ユーザーが購読しているデッキ + マイ辞書を取得
+    isPersonalDeck(deckId) {
+        return deckId === this.PERSONAL_DECK_ID;
+    },
+
+    // ユーザーが購読しているデッキ + 自分の単語帳を取得
     async fetchUserDecks() {
         const client = this._client();
         if (!client) return [{ deck_id: 'FREE_SAMPLE' }];
 
         const { data: { user } } = await client.auth.getUser();
 
-        let decks = [];
-        if (user) {
-            // 1. 購読中の公式デッキを取得
-            const { data: subData } = await client
-                .from('subscriptions')
-                .select('deck_id')
-                .eq('user_id', user.id);
+        if (!user) {
+            return [{ deck_id: 'FREE_SAMPLE' }];
+        }
 
-            if (subData) decks = subData.map(d => ({ deck_id: d.deck_id }));
+        const decks = [{ deck_id: 'FREE_SAMPLE' }, { deck_id: this.PERSONAL_DECK_ID }];
 
-            // 2. 自分の作成した単語（User_Deck）が1件以上あるかカウント
-            const { count, error } = await client
-                .from('cards')
-                .select('*', { count: 'exact', head: true })
-                .eq('deck_id', 'User_Deck')
-                .eq('created_by', user.id);
+        const { data: subData } = await client
+            .from('subscriptions')
+            .select('deck_id')
+            .eq('user_id', user.id);
 
-            if (!error && count > 0) {
-                decks.push({ deck_id: 'User_Deck' });
-            }
-        } else {
-            decks.push({ deck_id: 'FREE_SAMPLE' });
+        if (subData) {
+            subData.forEach(d => {
+                if (d.deck_id && d.deck_id !== 'FREE_SAMPLE' && d.deck_id !== this.PERSONAL_DECK_ID) {
+                    decks.push({ deck_id: d.deck_id });
+                }
+            });
         }
 
         const uniqueIds = Array.from(new Set(decks.map(d => d.deck_id)));
@@ -63,7 +63,8 @@ const DB = {
 
         let query = client.from('cards').select('*').eq('deck_id', this.currentDeckId);
 
-        if (this.currentDeckId === 'User_Deck') {
+        if (this.isPersonalDeck(this.currentDeckId)) {
+            if (!user) return [];
             query = query.eq('created_by', user.id);
         } else {
             query = query.is('created_by', null);
