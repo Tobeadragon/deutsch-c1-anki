@@ -2,7 +2,6 @@ let vocabulary = [];
 let filteredList = [];
 let currentPage = 1;
 const itemsPerPage = 15;
-const ADMIN_EMAIL = 'mastertyj@hotmail.com';
 
 const Admin = {
     async init() {
@@ -16,97 +15,19 @@ const Admin = {
         const { data: { user } } = await client.auth.getUser();
         if (!user) { window.location.href = 'login.html'; return; }
 
-        // 管理者の場合のみ、公式デッキ切替UIを構築
-        if (user.email === ADMIN_EMAIL) {
-            await this.setupAdminUI();
-        } else {
-            const formTitle = document.getElementById('form-title');
-            if (formTitle) formTitle.innerText = '自分の単語帳に追加';
-        }
-
         await this.loadData();
         this.bindEvents();
-    },
-
-    // 学習画面（index.html）で成功している DB.fetchUserDecks を利用する
-    async setupAdminUI() {
-        const adminControl = document.getElementById('admin-deck-control');
-        let select = document.getElementById('admin-deck-select');
-        const container = document.getElementById('deck-select-container');
-
-        if (!adminControl) return;
-        adminControl.style.display = 'block';
-
-        try {
-            const userDecks = await DB.fetchUserDecks();
-
-            if (!select && container) {
-                container.innerHTML = '';
-                select = document.createElement('select');
-                select.id = 'admin-deck-select';
-                select.className = 'admin-select';
-                container.appendChild(select);
-            }
-
-            if (!select) return;
-            select.innerHTML = '';
-
-            if (userDecks && userDecks.length > 0) {
-                userDecks.forEach(deck => {
-                    const opt = document.createElement('option');
-                    opt.value = deck.deck_id;
-
-                    if (DB.isPersonalDeck(deck.deck_id)) {
-                        opt.textContent = '📒 自分の単語帳';
-                    } else if (deck.deck_id.includes('FREE')) {
-                        opt.textContent = `🆓 ${deck.deck_id}`;
-                    } else if (deck.deck_id.match(/A1|A2|B1|B2|C1/)) {
-                        opt.textContent = `🇩🇪 ${deck.deck_id}`;
-                    } else {
-                        opt.textContent = `📚 ${deck.deck_id}`;
-                    }
-                    select.appendChild(opt);
-                });
-            }
-
-            const urlParams = new URLSearchParams(window.location.search);
-            const currentDeck = urlParams.get('deck') || DB.PERSONAL_DECK_ID;
-            select.value = currentDeck;
-
-            select.onchange = (e) => {
-                const newUrl = new URL(window.location.href);
-                newUrl.searchParams.set('deck', e.target.value);
-                window.location.href = newUrl.href;
-            };
-
-            const allSelects = adminControl.querySelectorAll('select');
-            allSelects.forEach(s => {
-                if (s !== select) s.style.display = 'none';
-            });
-
-        } catch (err) {
-            console.error("Deck setup error:", err);
-        }
     },
 
     async loadData() {
         const client = DB._client();
         const { data: { user } } = await client.auth.getUser();
-        const urlParams = new URLSearchParams(window.location.search);
-        const isAdmin = user.email === ADMIN_EMAIL;
-        const currentDeck = isAdmin
-            ? (urlParams.get('deck') || DB.PERSONAL_DECK_ID)
-            : DB.PERSONAL_DECK_ID;
-
-        let query = client.from('cards').select('*').eq('deck_id', currentDeck);
-
-        if (DB.isPersonalDeck(currentDeck)) {
-            query = query.eq('created_by', user.id);
-        } else {
-            query = query.is('created_by', null);
-        }
-
-        const { data, error } = await query.order('id', { ascending: false });
+        const { data, error } = await client
+            .from('cards')
+            .select('*')
+            .eq('deck_id', DB.PERSONAL_DECK_ID)
+            .eq('created_by', user.id)
+            .order('id', { ascending: false });
         if (!error) {
             vocabulary = data;
             this.applyFilter();
@@ -159,11 +80,7 @@ const Admin = {
         const client = DB._client();
         const { data: { user } } = await client.auth.getUser();
         const idField = document.getElementById('edit-id').value;
-        const urlParams = new URLSearchParams(window.location.search);
-        const isAdmin = user.email === ADMIN_EMAIL;
-        const targetDeck = isAdmin
-            ? (urlParams.get('deck') || DB.PERSONAL_DECK_ID)
-            : DB.PERSONAL_DECK_ID;
+        const targetDeck = DB.PERSONAL_DECK_ID;
 
         const payload = {
             word: document.getElementById('input-word').value.trim(),
@@ -172,16 +89,14 @@ const Admin = {
             example: document.getElementById('input-example').value.trim(),
             example_translation: document.getElementById('input-example-translation').value.trim(),
             deck_id: targetDeck,
-            created_by: DB.isPersonalDeck(targetDeck) ? user.id : null
+            created_by: user.id
         };
 
         if (!payload.word) return alert("単語を入力してください");
 
         const editId = idField ? parseInt(idField) : null;
-        if (DB.isPersonalDeck(targetDeck)) {
-            const duplicate = await this.findPersonalDuplicate(user.id, payload.word, editId);
-            if (duplicate) return alert("登録済みです");
-        }
+        const duplicate = await this.findPersonalDuplicate(user.id, payload.word, editId);
+        if (duplicate) return alert("登録済みです");
 
         let error;
         if (editId) {
