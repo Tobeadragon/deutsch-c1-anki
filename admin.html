@@ -34,26 +34,6 @@
             }
         }
 
-        .admin-special-card {
-            border: 1.5px solid #5856d6 !important;
-            background-color: #F0F2FF !important;
-        }
-
-        .admin-purple-text {
-            color: #5856d6 !important;
-            font-weight: bold;
-        }
-
-        .admin-select {
-            width: 100%;
-            padding: 12px;
-            border-radius: 12px;
-            border: 1px solid #5856d6;
-            font-weight: bold;
-            font-family: inherit;
-            margin-top: 10px;
-        }
-
         .input-stack {
             display: flex;
             flex-direction: column;
@@ -119,26 +99,8 @@
             </div>
         </header>
 
-        <div id="admin-deck-control" class="admin-card admin-special-card" style="display: none;">
-            <h3 class="admin-purple-text">編集対象のデッキ</h3>
-            <span
-                style="font-size: 0.7rem; color: #5856d6; background: rgba(88, 86, 214, 0.1); padding: 2px 8px; border-radius: 20px; font-weight: bold;">
-                管理者としてログイン中
-            </span>
-            <select id="admin-deck-select" class="admin-select">
-                <option value="FREE_SAMPLE">🆓 無料サンプル</option>
-                <option value="A2_VOL1">🇩🇪 ドイツ語 A2 (Vol1)</option>
-                <option value="A1_FULL">🇩🇪 ドイツ語 A1 (100)</option>
-                <option value="B1_VOL1">🇩🇪 ドイツ語 B1 (Vol.1)</option>
-                <option value="B1_VOL2">🇩🇪 ドイツ語 B1 (Vol.2)</option>
-                <option value="B2_VOL1">🇩🇪 ドイツ語 B2 (Vol.1)</option>
-                <option value="C1_VOL1">🇩🇪 ドイツ語 C1 (Vol.1)</option>
-                <option value="User_Deck">📒 自分の単語帳</option>
-            </select>
-        </div>
-
         <div class="admin-card">
-            <h3 id="form-title">新規単語を追加</h3>
+            <h3 id="form-title">自分の単語帳に追加</h3>
             <input type="hidden" id="edit-id">
             <div class="input-stack">
                 <div class="input-group"><label>単語 (独)</label><input type="text" id="input-word" class="form-control">
